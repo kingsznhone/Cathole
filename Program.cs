@@ -1,12 +1,48 @@
 using System.Net;
 using System.Text.Json;
-
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Serilog;
 namespace CatHole
 {
     internal class Program
     {
-        private static void Main(string[] args)
+        private static async Task Main(string[] args)
         {
+
+            var host = Host.CreateDefaultBuilder(args)
+            .ConfigureLogging((context, logging) =>
+            {
+                logging.ClearProviders();
+                logging.AddSerilog(new LoggerConfiguration()
+                                    .MinimumLevel.Debug()
+                                    .WriteTo.Console()
+                                    .WriteTo.File("logs/myapp.txt", rollingInterval: RollingInterval.Day)
+                                    .CreateLogger(), dispose: true);
+            })
+            .ConfigureServices((context, services) =>
+            {
+                //services.AddSingleton<MyService>();
+            })
+            .Build();
+
+            var lifetime = host.Services.GetRequiredService<IHostApplicationLifetime>();
+            lifetime.ApplicationStarted.Register(() =>
+            {
+                //var myService = host.Services.GetRequiredService<MyService>();
+                //myService.InitializeAsync().GetAwaiter().GetResult();
+            });
+            lifetime.ApplicationStopping.Register(() =>
+            {
+                Console.WriteLine("Application is stopping. Performing cleanup...");
+                Log.CloseAndFlush();
+            });
+
+            await host.RunAsync();
+
+            return;
+
             RelayOption optionIperf = new()
             {
                 ExternalHost = "127.0.0.1:5201",

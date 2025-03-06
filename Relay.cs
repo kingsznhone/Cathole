@@ -157,16 +157,16 @@ namespace CatHole
             {
                 while (!cancellationToken.IsCancellationRequested)
                 {
-                    //try
+                    try
                     {
                         var receivedData = await tunnelUdpClient.ReceiveAsync(cancellationToken);
                         Console.WriteLine($"Recieved from {receivedData.RemoteEndPoint}, send to {callbackEndpoint}");
                         await udpListener.SendAsync(receivedData.Buffer, callbackEndpoint, cancellationToken);
                     }
-                    //catch (Exception ex)
+                    catch (Exception ex)
                     {
-                        //Console.WriteLine($"Error in receiving from client: {ex.Message}");
-                        //break;
+                        Console.WriteLine($"Error in receiving from client: {ex.Message}");
+                        break;
                     }
                 }
             }, cancellationToken);
