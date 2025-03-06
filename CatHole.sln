@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.12.35527.113 d17.12
+VisualStudioVersion = 17.12.35527.113
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CatHole", "CatHole\CatHole.csproj", "{DB2DC025-C1B1-4E5E-8357-074ED90AAECA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CatHole.Core", "CatHole.Core\CatHole.Core.csproj", "{5010E6BE-7F5A-4BE9-8637-8BCEBB98DAA3}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,8 +17,15 @@ Global
 		{DB2DC025-C1B1-4E5E-8357-074ED90AAECA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DB2DC025-C1B1-4E5E-8357-074ED90AAECA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DB2DC025-C1B1-4E5E-8357-074ED90AAECA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5010E6BE-7F5A-4BE9-8637-8BCEBB98DAA3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5010E6BE-7F5A-4BE9-8637-8BCEBB98DAA3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5010E6BE-7F5A-4BE9-8637-8BCEBB98DAA3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5010E6BE-7F5A-4BE9-8637-8BCEBB98DAA3}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {CE1E9BC3-F12E-4EF4-A80E-DB1F8A1F1E26}
 	EndGlobalSection
 EndGlobal

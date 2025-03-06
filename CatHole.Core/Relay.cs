@@ -1,27 +1,25 @@
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
+using Microsoft.Extensions.Logging;
 
-namespace CatHole
+namespace CatHole.Core
 {
     public class Relay
     {
         private readonly RelayOption _option;
-        private TcpListener _tcpListener;
-        private readonly Dictionary<IPEndPoint, IPEndPoint> _udpClientMap = new Dictionary<IPEndPoint, IPEndPoint>();
-
+        private readonly ILogger<Relay> _logger;
         private IPEndPoint _externalEndpoint;
         private IPEndPoint _internalEndpoint;
-        private int _timeout;
         private CancellationTokenSource _cts = new CancellationTokenSource();
         private Dictionary<IPEndPoint, UdpClient> _udpMap = new Dictionary<IPEndPoint, UdpClient>();
 
-        public Relay(RelayOption option)
+        public Relay(RelayOption option,ILogger<Relay> logger)
         {
             _option = option;
+            _logger = logger;
             _externalEndpoint = IPEndPoint.Parse(_option.ExternalHost);
             _internalEndpoint = IPEndPoint.Parse(_option.InternalHost);
-            _timeout = _option.Timeout;
         }
 
         public void Start()
@@ -32,7 +30,7 @@ namespace CatHole
             }
             if (_option.UDP)
             {
-                _ = StartUDPForwarding(_externalEndpoint, _internalEndpoint, _cts.Token);
+                _ = StartUDPForwarding(_cts.Token);
             }
         }
 
@@ -42,7 +40,7 @@ namespace CatHole
         }
         public async Task StartTCPForwarding(CancellationToken cancellationToken)
         {
-            _tcpListener = new TcpListener(_externalEndpoint.Address, _externalEndpoint.Port);
+            var _tcpListener = new TcpListener(_externalEndpoint.Address, _externalEndpoint.Port);
             _tcpListener.Start();
             Console.WriteLine($"Forwarding from {_externalEndpoint.Address}:{_externalEndpoint.Port} to {_internalEndpoint.Address}:{_internalEndpoint.Port}");
 
@@ -75,10 +73,10 @@ namespace CatHole
                 {
                     // Connect to the target host and port
                     await targetClient.ConnectAsync(_internalEndpoint.Address, _internalEndpoint.Port, cancellationToken);
-                    targetClient.ReceiveTimeout = _timeout;
-                    targetClient.SendTimeout = _timeout;
-                    client.ReceiveTimeout = _timeout;
-                    client.SendTimeout = _timeout;
+                    targetClient.ReceiveTimeout = _option.Timeout;
+                    targetClient.SendTimeout = _option.Timeout;
+                    client.ReceiveTimeout = _option.Timeout;
+                    client.SendTimeout = _option.Timeout;
 
                     // Get network streams for both connections
                     using var clientStream = client.GetStream();
@@ -118,12 +116,12 @@ namespace CatHole
             }
         }
 
-        public async Task StartUDPForwarding(IPEndPoint externalEndpoint, IPEndPoint internalEndpoint, CancellationToken cancellationToken)
+        public async Task StartUDPForwarding( CancellationToken cancellationToken)
         {
             
-            UdpClient udpListener = new UdpClient(externalEndpoint);
-            
-            Console.WriteLine($"UDP Forwarding from {externalEndpoint.Address}:{externalEndpoint.Port} to {internalEndpoint.Address}:{internalEndpoint.Port}");
+            UdpClient udpListener = new UdpClient(_externalEndpoint);
+
+            Console.WriteLine($"UDP Forwarding from {_externalEndpoint.Address}:{_externalEndpoint.Port} to {_internalEndpoint.Address}:{_internalEndpoint.Port}");
             try
             {
                 while (!cancellationToken.IsCancellationRequested)
@@ -137,12 +135,10 @@ namespace CatHole
                     {
                         tunnelUdpClient = new UdpClient();
                         Console.WriteLine($"Start new UDP tunnel for  {Clientendpoint}");
-                        //targetUdpClient.Client.ReceiveTimeout = _timeout;
-                        //targetUdpClient.Client.SendTimeout = _timeout;
                         _udpMap.Add(Clientendpoint, tunnelUdpClient);
                         _ = Task.Run(async () =>await  HandleUdpTunnel(Clientendpoint,udpListener,tunnelUdpClient,cancellationToken),cancellationToken);
                     }
-                    await tunnelUdpClient.SendAsync(initDataBlock.Buffer, _internalEndpoint, cancellationToken);
+                    int sent = await tunnelUdpClient.SendAsync(initDataBlock.Buffer, _internalEndpoint, cancellationToken);
                 }
             }
             catch (Exception ex)
