@@ -1,0 +1,54 @@
+@using CatHole.Core
+
+<Card Title="@( (Relay.Statistics.IsRunning ? " 🟢 " : " 🔴 ")+Relay.Option.Name)" Style="width: 360px;" Hoverable="true">
+    <Extra>
+        <Dropdown  Placement="Placement.Bottom" Arrow>
+            <ChildContent>
+                <Tag>...</Tag>
+            </ChildContent>
+            <Overlay>
+                <Menu>
+                    <MenuItem>
+                        <Button OnClick="() => Relay.Start()" Size="ButtonSize.Small" Style="width:60px">
+                            Start
+                        </Button>
+                    </MenuItem>
+                    <MenuItem>
+                        <Button OnClick="() => Relay.Stop()" Size="ButtonSize.Small" Style="width:60px">
+                            Stop
+                        </Button>
+                    </MenuItem>
+                    <MenuItem>
+                        <Button OnClick="() => EditCallback.InvokeAsync(Relay)" Size="ButtonSize.Small" Style="width:60px">
+                            Edit
+                        </Button>
+                    </MenuItem>
+                    <MenuItem>
+                        <Button Danger OnClick="() => DeleteCallback.InvokeAsync(Relay)" Size="ButtonSize.Small" Style="width:60px">
+                            Delete
+                        </Button>
+                    </MenuItem>
+                </Menu>
+            </Overlay>
+        </Dropdown>
+    </Extra>
+   <ChildContent >
+       <Flex Direction="FlexDirection.Vertical" Gap="FlexGap.Middle">
+            <Text>Listen: @Relay.Option.ListenHost</Text>
+            <Text>Target: @Relay.Option.TargetHost</Text>
+            <Text>BufferSize :@Relay.Option.BufferSize</Text>
+       </Flex>
+   </ChildContent>
+</Card>
+
+
+@code {
+    [Parameter]
+    public CatHoleRelay Relay { get; set; }
+
+    [Parameter]
+    
+    public EventCallback<CatHoleRelay> EditCallback { get; set; }
+    [Parameter]
+    public EventCallback<CatHoleRelay> DeleteCallback { get; set; }
+}

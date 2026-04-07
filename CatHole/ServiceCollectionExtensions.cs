@@ -14,10 +14,10 @@ public static class ServiceCollectionExtensions
     /// </summary>
     public static IServiceCollection AddRelayManager(this IServiceCollection services)
     {
-        services.AddSingleton<RelayManager>(sp =>
+        services.AddSingleton<CatHoleRelayManager>(sp =>
         {
             var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
-            return new RelayManager(loggerFactory);
+            return new CatHoleRelayManager(loggerFactory);
         });
 
         return services;

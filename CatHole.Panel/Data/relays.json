@@ -1,0 +1,12 @@
+[
+  {
+    "Name": "Unnamed",
+    "ListenHost": "127.0.0.1:56789",
+    "TargetHost": "127.0.0.1:45678",
+    "BufferSize": 131072,
+    "TCP": true,
+    "UDP": true,
+    "Timeout": 1000,
+    "UdpTunnelTimeout": 60
+  }
+]

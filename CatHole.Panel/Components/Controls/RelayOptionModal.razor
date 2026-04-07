@@ -1,0 +1,66 @@
+@using CatHole.Core
+@using CatHole.Panel.Services
+<Modal Visible="@_visible"
+       OnOk="HandleImportOk"
+       OnCancel="HandleImportCancel"
+       Style="width:480px">
+
+    <Form Layout="FormLayout.Horizontal"
+          Model="@CatHoleRelayOption"
+          OnFinish="@(() => { })"
+          OnFinishFailed="@(() => { })"
+          LabelColSpan="10"
+          WrapperColSpan="16">
+
+        <FormItem Label="Name">
+            <Input @bind-Value="@context.Name" Width="160" />
+        </FormItem>
+        <FormItem Label="ListenHost">
+            <Input @bind-Value="@context.ListenHost" Placeholder="127.0.0.1:54321" Width="160" />
+        </FormItem>
+        <FormItem Label="TargetHost">
+            <Input @bind-Value="@context.TargetHost" Placeholder="127.0.0.1:12345" Width="160" />
+        </FormItem>
+        <FormItem Label="TCP">
+            <Switch @bind-Value="@context.TCP" />
+        </FormItem>
+        <FormItem Label="UDP">
+            <Switch @bind-Value="@context.UDP" />
+        </FormItem>
+        <FormItem Label="BufferSize">
+            <AntDesign.InputNumber @bind-Value="@context.BufferSize" Min="1024" Step="1024"  Width="160px" />
+        </FormItem>
+        <FormItem Label="Timeout">
+            <AntDesign.InputNumber @bind-Value="@context.Timeout" Min="0" Formatter="@(value => value.ToString() + " ms")" Width="160px"/>
+        </FormItem>
+        <FormItem Label="UDP Tunnel Timeout">
+            <AntDesign.InputNumber @bind-Value="@context.UdpTunnelTimeout" Min="0" Formatter="@(value => value.ToString() + " s")" Width="160px" />
+        </FormItem>
+    </Form>
+</Modal>
+@code {
+    [CascadingParameter]
+    public CatHoleRelayOption CatHoleRelayOption { get; set; }
+
+    [Parameter]
+    public EventCallback<CatHoleRelayOption> OnConfirm { get; set; }
+
+    private bool _visible { get; set; } = false;
+
+    public void Show()
+    {
+        _visible = true;
+    }
+
+    private async Task HandleImportOk()
+    {
+        _visible = false;
+        await OnConfirm.InvokeAsync(CatHoleRelayOption);
+    }
+
+    private void HandleImportCancel(MouseEventArgs e)
+    {
+        _visible = false;
+    }
+
+}

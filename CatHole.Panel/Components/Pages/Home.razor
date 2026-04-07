@@ -1,0 +1,83 @@
+@page "/"
+@inject RelayService RelayService
+@using CatHole.Core
+@using CatHole.Panel.Components.Controls
+@using CatHole.Panel.Services
+@using Microsoft.AspNetCore.Authorization
+@using System.Security.Cryptography
+@* @attribute [Authorize] *@
+<PageTitle>Home</PageTitle>
+
+
+<Flex Gap="FlexGap.Middle" Direction="FlexDirection.Horizontal" Wrap="FlexWrap.Wrap">
+    <Button OnClick="CreateRelayHandler">New</Button>
+</Flex>
+
+<Divider/>
+<Flex Gap="FlexGap.Middle" Direction="FlexDirection.Horizontal" Wrap="FlexWrap.Wrap">
+    @foreach (var r in RelayService.GetAllRelays())
+    {
+        <RelayCard Relay="r" DeleteCallback="DeleteRelayHandler" EditCallback="EditRelayHandler"></RelayCard>
+    }
+</Flex>
+
+<CascadingValue Value="_catHoleRelayOption">
+    <RelayOptionModal @ref="_createModalRef" OnConfirm="_onConfirmCallback" />
+</CascadingValue>
+
+    @code {
+    private RelayOptionModal? _createModalRef;
+    private CatHoleRelayOption _catHoleRelayOption = new CatHoleRelayOption();
+    private EventCallback<CatHoleRelayOption> _onConfirmCallback;
+
+    protected override async Task OnInitializedAsync()
+    {
+    }
+
+    public void CreateRelayHandler()
+    {
+        _catHoleRelayOption = new CatHoleRelayOption();
+        _catHoleRelayOption.Name = $"Relay_{RandomNumberGenerator.GetString("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", 4)}";
+        _onConfirmCallback = EventCallback.Factory.Create<CatHoleRelayOption>(this, CreateConfirmed);
+        _createModalRef?.Show();
+    }
+
+    public void EditRelayHandler(CatHoleRelay relay)
+    {
+        _catHoleRelayOption = new CatHoleRelayOption
+        {
+            Id = relay.Option.Id,
+            Name = relay.Option.Name,
+            ListenHost = relay.Option.ListenHost,
+            TargetHost = relay.Option.TargetHost,
+            TCP = relay.Option.TCP,
+            UDP = relay.Option.UDP,
+            BufferSize = relay.Option.BufferSize,
+            Timeout = relay.Option.Timeout,
+            UdpTunnelTimeout = relay.Option.UdpTunnelTimeout
+        };
+        _onConfirmCallback = EventCallback.Factory.Create<CatHoleRelayOption>(this, EditConfirmed);
+        _createModalRef?.Show();
+    }
+
+    private async Task DeleteRelayHandler(CatHoleRelay relay)
+    {
+        await RelayService.RemoveRelayAsync(relay.Option.Id);
+        StateHasChanged();
+    }
+
+    private async Task CreateConfirmed(CatHoleRelayOption option)
+    {
+        //Console.WriteLine(option.ToString());
+        await RelayService.AddRelayAsync(option);
+        StateHasChanged();
+    }
+
+    private async Task EditConfirmed(CatHoleRelayOption option)
+    {
+        await RelayService.UpdateRelayAsync(option.Id, option);
+        StateHasChanged();
+    }
+
+}
+

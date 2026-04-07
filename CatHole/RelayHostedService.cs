@@ -13,12 +13,12 @@ public class RelayHostedService : IHostedService
 {
     private readonly IConfiguration _configuration;
     private readonly ILogger<RelayHostedService> _logger;
-    private readonly RelayManager _relayManager;
+    private readonly CatHoleRelayManager _relayManager;
 
     public RelayHostedService(
         IConfiguration configuration,
         ILogger<RelayHostedService> logger,
-        RelayManager relayManager)
+        CatHoleRelayManager relayManager)
     {
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -28,7 +28,7 @@ public class RelayHostedService : IHostedService
     /// <summary>
     /// Gets the underlying RelayManager for runtime management
     /// </summary>
-    public RelayManager Manager => _relayManager;
+    public CatHoleRelayManager Manager => _relayManager;
 
     public Task StartAsync(CancellationToken cancellationToken)
     {

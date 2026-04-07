@@ -16,7 +16,7 @@ public static class RelayManagerExtensions
     /// <param name="sectionName">The configuration section name (default: "Relays")</param>
     /// <returns>Number of relays loaded</returns>
     public static int LoadFromConfiguration(
-        this RelayManager manager,
+        this CatHoleRelayManager manager,
         IConfiguration configuration,
         string sectionName = "Relays")
     {
@@ -26,7 +26,7 @@ public static class RelayManagerExtensions
         if (configuration == null)
             throw new ArgumentNullException(nameof(configuration));
 
-        var relayOptions = configuration.GetSection(sectionName).Get<List<RelayOption>>();
+        var relayOptions = configuration.GetSection(sectionName).Get<List<CatHoleRelayOption>>();
 
         if (relayOptions == null || relayOptions.Count == 0)
         {
@@ -40,7 +40,7 @@ public static class RelayManagerExtensions
     /// Loads relays from IConfiguration section asynchronously
     /// </summary>
     public static Task<int> LoadFromConfigurationAsync(
-        this RelayManager manager,
+        this CatHoleRelayManager manager,
         IConfiguration configuration,
         string sectionName = "Relays")
     {
