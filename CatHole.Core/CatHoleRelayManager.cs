@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace CatHole.Core
 {
@@ -7,17 +8,23 @@ namespace CatHole.Core
     /// Core manager for managing multiple relay instances.
     /// Framework-agnostic and can be used in any .NET application.
     /// </summary>
-    public class CatHoleRelayManager : IDisposable, IAsyncDisposable
+    public class CatHoleRelayManager : IAsyncDisposable
     {
         private readonly ILoggerFactory _loggerFactory;
         private readonly ILogger<CatHoleRelayManager> _logger;
         private readonly ConcurrentDictionary<Guid, CatHoleRelay> _relays = new();
         private readonly Lock _managementLock = new();
-        private bool _disposed;
+        private int _disposed;
+
+        /// <summary>
+        /// Initializes a new instance with no logging output.
+        /// </summary>
+        public CatHoleRelayManager() : this(NullLoggerFactory.Instance) { }
 
         public CatHoleRelayManager(ILoggerFactory loggerFactory)
         {
-            _loggerFactory = loggerFactory ?? throw new ArgumentNullException(nameof(loggerFactory));
+            ArgumentNullException.ThrowIfNull(loggerFactory);
+            _loggerFactory = loggerFactory;
             _logger = _loggerFactory.CreateLogger<CatHoleRelayManager>();
         }
 
@@ -27,119 +34,108 @@ namespace CatHole.Core
         public int Count => _relays.Count;
 
         /// <summary>
-        /// Adds and starts a new relay
+        /// Adds and starts a new relay.
         /// </summary>
-        public bool AddRelay(CatHoleRelayOption option)
+        /// <exception cref="RelayAlreadyExistsException">A relay with the same Id already exists.</exception>
+        public void AddRelay(CatHoleRelayOption option)
         {
-            if (option == null)
-                throw new ArgumentNullException(nameof(option));
+            ObjectDisposedException.ThrowIf(_disposed == 1, this);
+            ArgumentNullException.ThrowIfNull(option);
+            CatHoleRelayFactory.ValidateOption(option);
 
-            if (string.IsNullOrWhiteSpace(option.Name))
-                throw new ArgumentException("Relay name cannot be empty", nameof(option));
-
+            CatHoleRelay relay;
             lock (_managementLock)
             {
                 if (_relays.ContainsKey(option.Id))
-                {
-                    _logger.LogWarning("Relay '{Name}' [{Id}] already exists", option.Name, option.Id);
-                    return false;
-                }
+                    throw new RelayAlreadyExistsException(option.Name, option.Id);
 
-                try
-                {
-                    var relayLogger = _loggerFactory.CreateLogger<CatHoleRelay>();
-                    var relay = new CatHoleRelay(option, relayLogger);
+                var relayLogger = _loggerFactory.CreateLogger<CatHoleRelay>();
+                relay = new CatHoleRelay(option, relayLogger);
+                _relays[option.Id] = relay;
+            }
 
-                    if (_relays.TryAdd(option.Id, relay))
-                    {
-                        relay.Start();
-                        _logger.LogInformation("Added and started relay '{Name}' [{Id}]: {ListenHost} -> {TargetHost}",
-                            option.Name, option.Id, option.ListenHost, option.TargetHost);
-                        return true;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Failed to add relay '{Name}' [{Id}]", option.Name, option.Id);
-                    throw;
-                }
-
-                return false;
+            // Start outside the lock: socket bind can be slow and should not block other management operations
+            try
+            {
+                relay.Start();
+            }
+            catch (Exception ex)
+            {
+                _relays.TryRemove(option.Id, out _);
+                _logger.LogError(ex, "Failed to start relay '{Name}' [{Id}]", option.Name, option.Id);
+                throw;
             }
         }
 
         /// <summary>
-        /// Adds multiple relays
+        /// Adds multiple relays. Throws on the first failure.
         /// </summary>
+        /// <returns>Number of relays successfully added.</returns>
         public int AddRelays(IEnumerable<CatHoleRelayOption> options)
         {
-            if (options == null)
-                throw new ArgumentNullException(nameof(options));
+            ObjectDisposedException.ThrowIf(_disposed == 1, this);
+            ArgumentNullException.ThrowIfNull(options);
 
             var count = 0;
             foreach (var option in options)
             {
-                if (AddRelay(option))
-                    count++;
+                AddRelay(option);
+                count++;
             }
 
-            _logger.LogInformation("Added {Count} relays successfully", count);
             return count;
         }
 
         /// <summary>
-        /// Removes and stops a relay by id
+        /// Removes and stops a relay by id.
         /// </summary>
-        public async Task<bool> RemoveRelayAsync(Guid id)
+        /// <exception cref="RelayNotFoundException">No relay with the given Id exists.</exception>
+        public async Task RemoveRelayAsync(Guid id, CancellationToken cancellationToken = default)
         {
-            if (_relays.TryRemove(id, out var relay))
+            ObjectDisposedException.ThrowIf(_disposed == 1, this);
+
+            if (!_relays.TryRemove(id, out var relay))
             {
-                _logger.LogInformation("Removing relay '{Name}' [{Id}]", relay.Option.Name, id);
-                await relay.DisposeAsync();
-                _logger.LogInformation("Removed relay '{Name}' [{Id}]", relay.Option.Name, id);
-                return true;
+                _logger.LogWarning("Relay [{Id}] not found", id);
+                throw new RelayNotFoundException(id);
             }
 
-            _logger.LogWarning("Relay [{Id}] not found", id);
-            return false;
+            await relay.StopAsync(cancellationToken).ConfigureAwait(false);
+            await relay.DisposeAsync().ConfigureAwait(false);
         }
 
         /// <summary>
-        /// Removes a relay synchronously
+        /// Starts a relay by id without removing it.
         /// </summary>
-        public bool RemoveRelay(Guid id)
+        /// <exception cref="RelayNotFoundException">No relay with the given Id exists.</exception>
+        public void StartRelay(Guid id)
         {
-            return RemoveRelayAsync(id).GetAwaiter().GetResult();
-        }
+            ObjectDisposedException.ThrowIf(_disposed == 1, this);
 
-        /// <summary>
-        /// Starts a relay by id without removing it. Returns false if the relay is not found.
-        /// </summary>
-        public bool StartRelay(Guid id)
-        {
             if (!_relays.TryGetValue(id, out var relay))
             {
                 _logger.LogWarning("Relay [{Id}] not found", id);
-                return false;
+                throw new RelayNotFoundException(id);
             }
 
             relay.Start();
-            return true;
         }
 
         /// <summary>
-        /// Stops a relay by id without removing or disposing it. Returns false if the relay is not found.
+        /// Stops a relay by id without removing or disposing it.
         /// </summary>
-        public async Task<bool> StopRelayAsync(Guid id)
+        /// <exception cref="RelayNotFoundException">No relay with the given Id exists.</exception>
+        public async Task StopRelayAsync(Guid id, CancellationToken cancellationToken = default)
         {
+            ObjectDisposedException.ThrowIf(_disposed == 1, this);
+
             if (!_relays.TryGetValue(id, out var relay))
             {
                 _logger.LogWarning("Relay [{Id}] not found", id);
-                return false;
+                throw new RelayNotFoundException(id);
             }
 
-            await relay.StopAsync();
-            return true;
+            await relay.StopAsync(cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -163,8 +159,10 @@ namespace CatHole.Core
         /// </summary>
         public void StartAll()
         {
+            ObjectDisposedException.ThrowIf(_disposed == 1, this);
+
             _logger.LogInformation("Starting all {Count} relays", _relays.Count);
-            
+
             foreach (var relay in _relays.Values)
             {
                 relay.Start();
@@ -174,35 +172,24 @@ namespace CatHole.Core
         /// <summary>
         /// Stops all relays asynchronously
         /// </summary>
-        public async Task StopAllAsync()
+        public async Task StopAllAsync(CancellationToken cancellationToken = default)
         {
+            ObjectDisposedException.ThrowIf(_disposed == 1, this);
+
             _logger.LogInformation("Stopping all {Count} relays", _relays.Count);
 
-            var stopTasks = _relays.Values.Select(relay => relay.StopAsync()).ToList();
-            await Task.WhenAll(stopTasks);
-
-            _logger.LogInformation("All relays stopped successfully");
-        }
-
-        /// <summary>
-        /// Stops all relays synchronously
-        /// </summary>
-        public void StopAll()
-        {
-            StopAllAsync().GetAwaiter().GetResult();
+            var stopTasks = _relays.Values.Select(relay => relay.StopAsync(cancellationToken)).ToList();
+            await Task.WhenAll(stopTasks).ConfigureAwait(false);
         }
 
         /// <summary>
         /// Removes all relays
         /// </summary>
-        public async Task ClearAsync()
+        public async Task ClearAsync(CancellationToken cancellationToken = default)
         {
-            _logger.LogInformation("Clearing all relays");
-
-            await Task.WhenAll(_relays.Values.Select(r => r.DisposeAsync().AsTask()));
+            await StopAllAsync(cancellationToken).ConfigureAwait(false);
+            await Task.WhenAll(_relays.Values.Select(r => r.DisposeAsync().AsTask())).ConfigureAwait(false);
             _relays.Clear();
-
-            _logger.LogInformation("All relays cleared");
         }
 
         /// <summary>
@@ -213,39 +200,11 @@ namespace CatHole.Core
             return _relays.ContainsKey(id);
         }
 
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
         public async ValueTask DisposeAsync()
         {
-            await DisposeAsyncCore();
-            Dispose(false);
-            GC.SuppressFinalize(this);
-        }
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!_disposed)
+            if (Interlocked.Exchange(ref _disposed, 1) == 0)
             {
-                if (disposing)
-                {
-                    foreach (var relay in _relays.Values)
-                        relay.Dispose();
-                    _relays.Clear();
-                }
-                _disposed = true;
-            }
-        }
-
-        protected virtual async ValueTask DisposeAsyncCore()
-        {
-            if (!_disposed)
-            {
-                await ClearAsync();
-                _disposed = true;
+                await ClearAsync().ConfigureAwait(false);
             }
         }
     }

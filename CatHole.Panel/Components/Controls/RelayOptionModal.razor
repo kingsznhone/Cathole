@@ -1,12 +1,14 @@
 @using CatHole.Core
 @using CatHole.Panel.Services
+@inject RelayService RelayService
+@inject NotificationService _notice
 <Modal Visible="@_visible"
        OnOk="HandleImportOk"
        OnCancel="HandleImportCancel"
        Style="width:480px">
 
     <Form Layout="FormLayout.Horizontal"
-          Model="@CatHoleRelayOption"
+          Model="@Option"
           OnFinish="@(() => { })"
           OnFinishFailed="@(() => { })"
           LabelColSpan="10"
@@ -30,22 +32,34 @@
         <FormItem Label="BufferSize">
             <AntDesign.InputNumber @bind-Value="@context.BufferSize" Min="1024" Step="1024"  Width="160px" />
         </FormItem>
-        <FormItem Label="Timeout">
-            <AntDesign.InputNumber @bind-Value="@context.Timeout" Min="0" Formatter="@(value => value.ToString() + " ms")" Width="160px"/>
+        <FormItem Label="Socket Timeout">
+            <AntDesign.InputNumber @bind-Value="@SocketTimeoutSeconds" Min="0" Formatter="@(value => value.ToString("F1") + " s")" Width="160px"/>
         </FormItem>
         <FormItem Label="UDP Tunnel Timeout">
-            <AntDesign.InputNumber @bind-Value="@context.UdpTunnelTimeout" Min="0" Formatter="@(value => value.ToString() + " s")" Width="160px" />
+            <AntDesign.InputNumber @bind-Value="@UdpTunnelTimeoutSeconds" Min="0" Formatter="@(value => value.ToString("F0") + " s")" Width="160px" />
         </FormItem>
     </Form>
 </Modal>
 @code {
-    [CascadingParameter]
-    public CatHoleRelayOption CatHoleRelayOption { get; set; }
+    [Parameter]
+    public CatHoleRelayOption Option { get; set; } = new();
 
     [Parameter]
-    public EventCallback<CatHoleRelayOption> OnConfirm { get; set; }
+    public bool IsEdit { get; set; }
 
     private bool _visible { get; set; } = false;
+
+    private double SocketTimeoutSeconds
+    {
+        get => Option.SocketTimeout.TotalSeconds;
+        set => Option.SocketTimeout = TimeSpan.FromSeconds(value);
+    }
+
+    private double UdpTunnelTimeoutSeconds
+    {
+        get => Option.UdpTunnelTimeout.TotalSeconds;
+        set => Option.UdpTunnelTimeout = TimeSpan.FromSeconds(value);
+    }
 
     public void Show()
     {
@@ -55,7 +69,21 @@
     private async Task HandleImportOk()
     {
         _visible = false;
-        await OnConfirm.InvokeAsync(CatHoleRelayOption);
+        try
+        {
+            if (IsEdit)
+                await RelayService.UpdateRelayAsync(Option.Id, Option);
+            else
+                await RelayService.AddRelayAsync(Option);
+        }
+        catch (Exception ex)
+        {
+            _ = _notice.Warning(new NotificationConfig()
+            {
+                Message = IsEdit ? "Edit relay failed" : "Create new relay failed",
+                Description = ex.Message
+            });
+        }
     }
 
     private void HandleImportCancel(MouseEventArgs e)

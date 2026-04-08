@@ -20,9 +20,13 @@ public class RelayHostedService : IHostedService
         ILogger<RelayHostedService> logger,
         CatHoleRelayManager relayManager)
     {
-        _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _relayManager = relayManager ?? throw new ArgumentNullException(nameof(relayManager));
+        ArgumentNullException.ThrowIfNull(configuration);
+        ArgumentNullException.ThrowIfNull(logger);
+        ArgumentNullException.ThrowIfNull(relayManager);
+
+        _configuration = configuration;
+        _logger = logger;
+        _relayManager = relayManager;
     }
 
     /// <summary>
@@ -62,8 +66,12 @@ public class RelayHostedService : IHostedService
 
         try
         {
-            await _relayManager.StopAllAsync();
+            await _relayManager.StopAllAsync(cancellationToken).ConfigureAwait(false);
             _logger.LogInformation("Relay Hosted Service stopped successfully");
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogWarning("Relay shutdown cancelled by host timeout");
         }
         catch (Exception ex)
         {

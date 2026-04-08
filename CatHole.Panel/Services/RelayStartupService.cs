@@ -34,6 +34,6 @@ public sealed class RelayStartupService : IHostedService
 
     public async Task StopAsync(CancellationToken cancellationToken)
     {
-        await _manager.StopAllAsync();
+        await _manager.StopAllAsync(cancellationToken).ConfigureAwait(false);
     }
 }

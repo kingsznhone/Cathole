@@ -5,78 +5,75 @@
 @using CatHole.Panel.Services
 @using Microsoft.AspNetCore.Authorization
 @using System.Security.Cryptography
+@implements IDisposable
 @* @attribute [Authorize] *@
+@rendermode InteractiveServer
 <PageTitle>Home</PageTitle>
 
 
 <Flex Gap="FlexGap.Middle" Direction="FlexDirection.Horizontal" Wrap="FlexWrap.Wrap">
     <Button OnClick="CreateRelayHandler">New</Button>
+    <Button OnClick="OpenConfigHandler">Config</Button>
+    <Button OnClick="StartAllHandler">Start All</Button>
+    <Button OnClick="StopAllHandler">Stop All</Button>
+    <Button Danger OnClick="ClearAllHandler">Clear All</Button>
 </Flex>
 
-<Divider/>
+<Divider />
 <Flex Gap="FlexGap.Middle" Direction="FlexDirection.Horizontal" Wrap="FlexWrap.Wrap">
-    @foreach (var r in RelayService.GetAllRelays())
+    @foreach (var relay in RelayService.GetAllRelays())
     {
-        <RelayCard Relay="r" DeleteCallback="DeleteRelayHandler" EditCallback="EditRelayHandler"></RelayCard>
+        <RelayCard Relay=relay></RelayCard>
     }
 </Flex>
 
-<CascadingValue Value="_catHoleRelayOption">
-    <RelayOptionModal @ref="_createModalRef" OnConfirm="_onConfirmCallback" />
-</CascadingValue>
+<RelayOptionModal @ref="_createModalRef" Option="_catHoleRelayOption" IsEdit="false" />
+<ConfigModal @ref="_configModalRef" />
 
-    @code {
+@code {
     private RelayOptionModal? _createModalRef;
-    private CatHoleRelayOption _catHoleRelayOption = new CatHoleRelayOption();
-    private EventCallback<CatHoleRelayOption> _onConfirmCallback;
+    private ConfigModal? _configModalRef;
+    private CatHoleRelayOption _catHoleRelayOption = new();
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
+        RelayService.RelaysChanged += HandleRelaysChanged;
+    }
+
+    private void HandleRelaysChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        RelayService.RelaysChanged -= HandleRelaysChanged;
     }
 
     public void CreateRelayHandler()
     {
-        _catHoleRelayOption = new CatHoleRelayOption();
-        _catHoleRelayOption.Name = $"Relay_{RandomNumberGenerator.GetString("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", 4)}";
-        _onConfirmCallback = EventCallback.Factory.Create<CatHoleRelayOption>(this, CreateConfirmed);
-        _createModalRef?.Show();
-    }
-
-    public void EditRelayHandler(CatHoleRelay relay)
-    {
         _catHoleRelayOption = new CatHoleRelayOption
         {
-            Id = relay.Option.Id,
-            Name = relay.Option.Name,
-            ListenHost = relay.Option.ListenHost,
-            TargetHost = relay.Option.TargetHost,
-            TCP = relay.Option.TCP,
-            UDP = relay.Option.UDP,
-            BufferSize = relay.Option.BufferSize,
-            Timeout = relay.Option.Timeout,
-            UdpTunnelTimeout = relay.Option.UdpTunnelTimeout
+            Name = $"Relay_{RandomNumberGenerator.GetString("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", 4)}"
         };
-        _onConfirmCallback = EventCallback.Factory.Create<CatHoleRelayOption>(this, EditConfirmed);
         _createModalRef?.Show();
     }
 
-    private async Task DeleteRelayHandler(CatHoleRelay relay)
+    public async Task OpenConfigHandler()
     {
-        await RelayService.RemoveRelayAsync(relay.Option.Id);
-        StateHasChanged();
+       await (_configModalRef?.Show() ?? Task.CompletedTask);
     }
 
-    private async Task CreateConfirmed(CatHoleRelayOption option)
+    public void StartAllHandler()
     {
-        //Console.WriteLine(option.ToString());
-        await RelayService.AddRelayAsync(option);
-        StateHasChanged();
+        RelayService.StartAll();
     }
 
-    private async Task EditConfirmed(CatHoleRelayOption option)
+    public async Task StopAllHandler()
     {
-        await RelayService.UpdateRelayAsync(option.Id, option);
-        StateHasChanged();
+        await RelayService.StopAllAsync();
+    }
+
+    public async Task ClearAllHandler()
+    {
+        await RelayService.ClearAllAsync();
     }
 
 }

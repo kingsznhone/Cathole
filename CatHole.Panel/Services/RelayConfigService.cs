@@ -15,7 +15,7 @@ public sealed class RelayConfigService
     private readonly SemaphoreSlim _lock = new(1, 1);
     private List<CatHoleRelayOption>? _cache;
 
-    private static readonly JsonSerializerOptions s_jsonOptions = new() { WriteIndented = true };
+    private static readonly JsonSerializerOptions _jsonOptions = new() { WriteIndented = true };
 
     public RelayConfigService(IConfiguration configuration, ILogger<RelayConfigService> logger)
     {
@@ -98,6 +98,21 @@ public sealed class RelayConfigService
         finally { _lock.Release(); }
     }
 
+    /// <summary>
+    /// Atomically replaces the entire relay list with <paramref name="options"/> and persists.
+    /// </summary>
+    public async Task ReplaceAllAsync(IEnumerable<CatHoleRelayOption> options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        await _lock.WaitAsync();
+        try
+        {
+            _cache = [.. options];
+            await PersistAsync();
+        }
+        finally { _lock.Release(); }
+    }
+
     // Must be called while holding _lock.
     private async Task EnsureLoadedAsync()
     {
@@ -113,7 +128,7 @@ public sealed class RelayConfigService
         try
         {
             var json = await File.ReadAllTextAsync(_configPath);
-            _cache = JsonSerializer.Deserialize<List<CatHoleRelayOption>>(json, s_jsonOptions) ?? [];
+            _cache = JsonSerializer.Deserialize<List<CatHoleRelayOption>>(json, _jsonOptions) ?? [];
             _logger.LogInformation("Loaded {Count} relay configs from {Path}", _cache.Count, _configPath);
         }
         catch (Exception ex)
@@ -127,7 +142,7 @@ public sealed class RelayConfigService
     private async Task PersistAsync()
     {
         var tmp = _configPath + ".tmp";
-        var json = JsonSerializer.Serialize(_cache, s_jsonOptions);
+        var json = JsonSerializer.Serialize(_cache, _jsonOptions);
         await File.WriteAllTextAsync(tmp, json);
         File.Move(tmp, _configPath, overwrite: true);
         _logger.LogDebug("Persisted {Count} relay configs to {Path}", _cache!.Count, _configPath);

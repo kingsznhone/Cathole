@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Net;
@@ -6,7 +7,7 @@ using Microsoft.Extensions.Logging;
 
 namespace CatHole.Core
 {
-    public class CatHoleRelay : IAsyncDisposable, IDisposable
+    public class CatHoleRelay : IAsyncDisposable
     {
         private readonly CatHoleRelayOption _option;
         private readonly ILogger<CatHoleRelay> _logger;
@@ -14,12 +15,13 @@ namespace CatHole.Core
         private readonly IPEndPoint _targetEndpoint;
         private CancellationTokenSource _cts = new();
         private readonly ConcurrentDictionary<IPEndPoint, UdpTunnelInfo> _udpMap = new();
-        private readonly ConcurrentBag<Task> _activeTasks = new();
+        private readonly List<Task> _activeTasks = new();
+        private readonly Lock _activeTasksLock = new();
         private readonly Lock _stateLock = new();
         private readonly Stopwatch _uptimeStopwatch = new();
         private TimeSpan _cumulativeUptime = TimeSpan.Zero;
         private int _isRunning = 0;
-        private bool _disposed;
+        private int _disposed;
         private DateTime? _startTime;
         private int _tcpActiveConnections = 0;
         private long _tcpTotalConnections = 0;
@@ -32,9 +34,15 @@ namespace CatHole.Core
         private UdpClient? _udpListener;
         private Task? _tcpForwardingTask;
         private Task? _udpForwardingTask;
+        private Task _stopTask = Task.CompletedTask;
+
+        private static readonly TimeSpan s_disposeTimeout = TimeSpan.FromSeconds(30);
 
         public CatHoleRelay(CatHoleRelayOption option, ILogger<CatHoleRelay> logger)
         {
+            ArgumentNullException.ThrowIfNull(option);
+            ArgumentNullException.ThrowIfNull(logger);
+
             _option = option;
             _logger = logger;
             _listenEndpoint = IPEndPoint.Parse(_option.ListenHost);
@@ -79,11 +87,13 @@ namespace CatHole.Core
 
         public void Start()
         {
+            ObjectDisposedException.ThrowIf(_disposed == 1, this);
+
             lock (_stateLock)
             {
                 if (Interlocked.CompareExchange(ref _isRunning, 1, 0) == 1)
                 {
-                    _logger.LogWarning("Relay already running");
+                    _logger.LogWarning("Relay [{Name}] is already running", _option.Name);
                     return;
                 }
 
@@ -93,8 +103,14 @@ namespace CatHole.Core
                     _cts = new CancellationTokenSource();
                 }
 
-                _logger.LogInformation("Starting relay [{Name}] {ListenHost} -> {TargetHost}",
-                    _option.Name, _option.ListenHost, _option.TargetHost);
+                var protocols = (_option.TCP, _option.UDP) switch
+                {
+                    (true, true) => "TCP+UDP",
+                    (true, false) => "TCP",
+                    _ => "UDP"
+                };
+                _logger.LogInformation("Relay [{Name}] starting: {ListenHost} -> {TargetHost} [{Protocols}]",
+                    _option.Name, _option.ListenHost, _option.TargetHost, protocols);
 
                 try
                 {
@@ -132,33 +148,71 @@ namespace CatHole.Core
             }
         }
 
-        public async Task StopAsync()
+        /// <summary>
+        /// Stops the relay gracefully. Concurrent callers all await the same underlying stop operation.
+        /// The <paramref name="cancellationToken"/> controls how long each caller is willing to wait;
+        /// the actual cleanup continues in the background regardless.
+        /// </summary>
+        public async Task StopAsync(CancellationToken cancellationToken = default)
         {
             lock (_stateLock)
             {
-                if (Interlocked.CompareExchange(ref _isRunning, 0, 1) == 0)
+                if (Interlocked.CompareExchange(ref _isRunning, 0, 1) == 1)
                 {
-                    _logger.LogWarning("Relay is not running");
+                    // We won the race — initiate stop
+                    _logger.LogInformation("Stopping relay [{Name}] {ListenHost} -> {TargetHost}",
+                        _option.Name, _option.ListenHost, _option.TargetHost);
+
+                    if (_uptimeStopwatch.IsRunning)
+                    {
+                        _uptimeStopwatch.Stop();
+                        _cumulativeUptime += _uptimeStopwatch.Elapsed;
+                    }
+
+                    _cts.Cancel();
+
+                    _tcpListener?.Stop();
+                    _udpListener?.Close();
+
+                    _stopTask = StopCoreAsync();
+                }
+                else if (_stopTask.IsCompleted)
+                {
+                    // Not running and no stop in progress
+                    _logger.LogWarning("Relay [{Name}] is not running", _option.Name);
                     return;
                 }
-
-                _logger.LogInformation("Stopping relay [{Name}] {ListenHost} -> {TargetHost}",
-                    _option.Name, _option.ListenHost, _option.TargetHost);
-
-                if (_uptimeStopwatch.IsRunning)
-                {
-                    _uptimeStopwatch.Stop();
-                    _cumulativeUptime += _uptimeStopwatch.Elapsed;
-                }
-
-                _cts.Cancel();
-
-                _tcpListener?.Stop();
-                _udpListener?.Close();
+                // else: stop already in progress — fall through to await
             }
 
+            await _stopTask.WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            if (Interlocked.CompareExchange(ref _disposed, 1, 0) == 1)
+                return;
+
+            using var cts = new CancellationTokenSource(s_disposeTimeout);
+            try
+            {
+                await StopAsync(cts.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogWarning("Relay [{Name}] stop timed out during dispose", _option.Name);
+            }
+
+            _cts.Dispose();
+        }
+
+        /// <summary>
+        /// Performs the actual async cleanup after cancellation has been signaled and listeners stopped.
+        /// </summary>
+        private async Task StopCoreAsync()
+        {
             // Wait for main forwarding tasks
-            var tasksToWait = new List<Task>();
+            var tasksToWait = new List<Task>(2);
             if (_tcpForwardingTask != null) tasksToWait.Add(_tcpForwardingTask);
             if (_udpForwardingTask != null) tasksToWait.Add(_udpForwardingTask);
 
@@ -175,12 +229,18 @@ namespace CatHole.Core
             }
 
             // Wait for all active client tasks
-            if (!_activeTasks.IsEmpty)
+            Task[] activeTaskSnapshot;
+            lock (_activeTasksLock)
             {
-                _logger.LogDebug("Waiting for {Count} active client tasks to complete", _activeTasks.Count);
+                activeTaskSnapshot = [.. _activeTasks];
+            }
+
+            if (activeTaskSnapshot.Length > 0)
+            {
+                _logger.LogDebug("Waiting for {Count} active client tasks to complete", activeTaskSnapshot.Length);
                 try
                 {
-                    await Task.WhenAll(_activeTasks).ConfigureAwait(false);
+                    await Task.WhenAll(activeTaskSnapshot).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -191,67 +251,51 @@ namespace CatHole.Core
             // Clean up UDP tunnels
             foreach (var tunnelInfo in _udpMap.Values)
             {
-                tunnelInfo.Client?.Close();
+                tunnelInfo.Client.Close();
             }
             _udpMap.Clear();
+
+            // Null-clear references for safe restart
+            _tcpForwardingTask = null;
+            _udpForwardingTask = null;
+            _tcpListener = null;
+            _udpListener = null;
+            lock (_activeTasksLock)
+            {
+                _activeTasks.Clear();
+            }
 
             _logger.LogInformation("Relay [{Name}] stopped successfully. Total uptime: {Uptime}",
                 _option.Name, Uptime.ToString(@"dd\.hh\:mm\:ss"));
         }
 
-        public void Stop()
+        private async Task StartTCPForwarding(CancellationToken ct)
         {
-            StopAsync().GetAwaiter().GetResult();
-        }
-
-        public async ValueTask DisposeAsync()
-        {
-            if (_disposed) return;
-            _disposed = true;
-            if (_isRunning == 1)
-                await StopAsync();
-            _cts.Dispose();
-        }
-
-        public void Dispose()
-        {
-            if (_disposed) return;
-            _disposed = true;
-            if (_isRunning == 1)
-                Stop();
-            _cts.Dispose();
-        }
-
-        public async Task StartTCPForwarding(CancellationToken ct)
-        {
-            _logger.LogInformation("TCP forwarding from [{Name}] {ListenEndpoint} to {TargetEndpoint}",
-                _option.Name, _listenEndpoint, _targetEndpoint);
-
             try
             {
                 while (!ct.IsCancellationRequested)
                 {
-                    TcpClient client = await _tcpListener.AcceptTcpClientAsync(ct);
+                    TcpClient client = await _tcpListener!.AcceptTcpClientAsync(ct);
                     _logger.LogDebug("Accepted new TCP client from {RemoteEndPoint}", client.Client.RemoteEndPoint);
 
                     Interlocked.Increment(ref _tcpActiveConnections);
                     Interlocked.Increment(ref _tcpTotalConnections);
 
-                    var clientTask = Task.Run(() => HandleTCPClient(client, ct), ct);
-                    _activeTasks.Add(clientTask);
+                    var clientTask = Task.Run(() => HandleTCPClient(client, ct), CancellationToken.None);
+                    TrackActiveTask(clientTask);
                 }
             }
             catch (OperationCanceledException)
             {
-                _logger.LogInformation("TCP forwarding cancelled");
+                _logger.LogDebug("Relay [{Name}] TCP forwarding stopped", _option.Name);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in TCP listener");
+                _logger.LogError(ex, "Relay [{Name}] TCP listener failed unexpectedly", _option.Name);
             }
             finally
             {
-                _tcpListener.Stop();
+                _tcpListener?.Stop();
             }
         }
 
@@ -273,16 +317,17 @@ namespace CatHole.Core
                         }
                         catch (Exception ex)
                         {
-                            _logger.LogWarning(ex, "Failed to connect to target {TargetEndpoint} for client {RemoteEndPoint}",
-                                _targetEndpoint, remoteEndPoint);
+                            _logger.LogWarning(ex, "Relay [{Name}] failed to connect to target {TargetEndpoint}",
+                                _option.Name, _targetEndpoint);
                             Interlocked.Increment(ref _connectionErrors);
                             return;
                         }
 
-                        targetClient.ReceiveTimeout = _option.Timeout;
-                        targetClient.SendTimeout = _option.Timeout;
-                        client.ReceiveTimeout = _option.Timeout;
-                        client.SendTimeout = _option.Timeout;
+                        var socketTimeoutMs = (int)_option.SocketTimeout.TotalMilliseconds;
+                        targetClient.ReceiveTimeout = socketTimeoutMs;
+                        targetClient.SendTimeout = socketTimeoutMs;
+                        client.ReceiveTimeout = socketTimeoutMs;
+                        client.SendTimeout = socketTimeoutMs;
 
                         var clientToTarget = CopyStreamWithShutdownAsync(client, targetClient, true, ct);
                         var targetToClient = CopyStreamWithShutdownAsync(targetClient, client, false, ct);
@@ -299,7 +344,7 @@ namespace CatHole.Core
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Error handling TCP client {RemoteEndPoint}", remoteEndPoint);
+                _logger.LogWarning(ex, "Relay [{Name}] error on TCP client {RemoteEndPoint}", _option.Name, remoteEndPoint);
             }
             finally
             {
@@ -313,19 +358,17 @@ namespace CatHole.Core
             bool isClientToTarget,
             CancellationToken ct)
         {
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(_option.BufferSize);
             try
             {
                 var sourceStream = sourceClient.GetStream();
                 var targetStream = targetClient.GetStream();
 
-                byte[] buffer = new byte[_option.BufferSize];
                 int bytesRead;
-                long totalBytes = 0;
 
-                while ((bytesRead = await sourceStream.ReadAsync(buffer, ct)) > 0)
+                while ((bytesRead = await sourceStream.ReadAsync(buffer.AsMemory(0, _option.BufferSize), ct)) > 0)
                 {
                     await targetStream.WriteAsync(buffer.AsMemory(0, bytesRead), ct);
-                    totalBytes += bytesRead;
 
                     if (isClientToTarget)
                         Interlocked.Add(ref _tcpBytesSent, bytesRead);
@@ -337,7 +380,6 @@ namespace CatHole.Core
                 try
                 {
                     targetClient.Client.Shutdown(SocketShutdown.Send);
-                    _logger.LogDebug("Stream copy completed and shutdown sent, total bytes: {TotalBytes}", totalBytes);
                 }
                 catch (Exception ex)
                 {
@@ -352,43 +394,49 @@ namespace CatHole.Core
             {
                 _logger.LogDebug(ex, "Error copying stream");
             }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
+            }
         }
 
-        public async Task StartUDPForwarding(CancellationToken ct)
+        private async Task StartUDPForwarding(CancellationToken ct)
         {
-            _logger.LogInformation("UDP forwarding from {ListenEndpoint} to {TargetEndpoint}",
-                _listenEndpoint, _targetEndpoint);
-
             try
             {
                 while (!ct.IsCancellationRequested)
                 {
-                    var initDataBlock = await _udpListener.ReceiveAsync(ct);
-                    _logger.LogDebug("Received UDP packet: {Length} bytes from {RemoteEndPoint}",
-                        initDataBlock.Buffer.Length, initDataBlock.RemoteEndPoint);
-
+                    var initDataBlock = await _udpListener!.ReceiveAsync(ct);
                     var clientEndpoint = initDataBlock.RemoteEndPoint;
-                    var isNew = false;
-                    var tunnelInfo = _udpMap.GetOrAdd(clientEndpoint, _ =>
+
+                    if (!_udpMap.TryGetValue(clientEndpoint, out var tunnelInfo))
                     {
-                        isNew = true;
-                        var info = new UdpTunnelInfo
+                        var newTunnel = new UdpTunnelInfo
                         {
                             Client = new UdpClient(),
                             LastActivity = DateTime.UtcNow
                         };
-                        return info;
-                    });
+
+                        if (_udpMap.TryAdd(clientEndpoint, newTunnel))
+                        {
+                            tunnelInfo = newTunnel;
+                            _logger.LogDebug("Started new UDP tunnel for {ClientEndpoint}", clientEndpoint);
+                            var tunnelTask = Task.Run(() => HandleUdpTunnel(clientEndpoint, _udpListener!, tunnelInfo, ct), CancellationToken.None);
+                            TrackActiveTask(tunnelTask);
+                        }
+                        else
+                        {
+                            // Another thread added it first; close our duplicate and use theirs
+                            newTunnel.Client.Close();
+                            _udpMap.TryGetValue(clientEndpoint, out tunnelInfo);
+                        }
+                    }
+
+                    if (tunnelInfo is null)
+                        continue;
 
                     // Update last activity
                     tunnelInfo.LastActivity = DateTime.UtcNow;
-
-                    if (isNew)
-                    {
-                        _logger.LogDebug("Started new UDP tunnel for {ClientEndpoint}", clientEndpoint);
-                        var tunnelTask = Task.Run(() => HandleUdpTunnel(clientEndpoint, _udpListener, tunnelInfo, ct), ct);
-                        _activeTasks.Add(tunnelTask);
-                    }
 
                     await tunnelInfo.Client.SendAsync(initDataBlock.Buffer, _targetEndpoint, ct);
                     Interlocked.Add(ref _udpBytesSent, initDataBlock.Buffer.Length);
@@ -396,11 +444,11 @@ namespace CatHole.Core
             }
             catch (OperationCanceledException)
             {
-                _logger.LogInformation("UDP forwarding cancelled");
+                _logger.LogDebug("Relay [{Name}] UDP forwarding stopped", _option.Name);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in UDP forwarding");
+                _logger.LogError(ex, "Relay [{Name}] UDP forwarding failed unexpectedly", _option.Name);
             }
         }
 
@@ -414,7 +462,7 @@ namespace CatHole.Core
                 {
                     // Check for timeout
                     var idleTime = DateTime.UtcNow - tunnelInfo.LastActivity;
-                    if (idleTime.TotalSeconds > _option.UdpTunnelTimeout)
+                    if (idleTime > _option.UdpTunnelTimeout)
                     {
                         _logger.LogDebug("UDP tunnel timeout for {CallbackEndpoint} after {IdleSeconds}s idle",
                             callbackEndpoint, (int)idleTime.TotalSeconds);
@@ -424,13 +472,10 @@ namespace CatHole.Core
                     try
                     {
                         // Wait with timeout
-                        timeoutCts.CancelAfter(TimeSpan.FromSeconds(_option.UdpTunnelTimeout));
+                        timeoutCts.CancelAfter(_option.UdpTunnelTimeout);
                         var receivedData = await tunnelInfo.Client.ReceiveAsync(timeoutCts.Token);
 
                         tunnelInfo.LastActivity = DateTime.UtcNow;
-
-                        _logger.LogDebug("UDP tunnel: received {Length} bytes from {RemoteEndPoint}, sending to {CallbackEndpoint}",
-                            receivedData.Buffer.Length, receivedData.RemoteEndPoint, callbackEndpoint);
 
                         Interlocked.Add(ref _udpBytesReceived, receivedData.Buffer.Length);
                         await udpListener.SendAsync(receivedData.Buffer, callbackEndpoint, ct);
@@ -443,9 +488,8 @@ namespace CatHole.Core
                     {
                         // Timeout on receive, check if tunnel should be closed
                         var currentIdleTime = DateTime.UtcNow - tunnelInfo.LastActivity;
-                        if (currentIdleTime.TotalSeconds > _option.UdpTunnelTimeout)
+                        if (currentIdleTime > _option.UdpTunnelTimeout)
                         {
-                            _logger.LogDebug("UDP tunnel idle timeout for {CallbackEndpoint}", callbackEndpoint);
                             break;
                         }
                     }
@@ -457,20 +501,36 @@ namespace CatHole.Core
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Error in UDP tunnel for {CallbackEndpoint}", callbackEndpoint);
+                _logger.LogWarning(ex, "Relay [{Name}] error in UDP tunnel for {CallbackEndpoint}", _option.Name, callbackEndpoint);
             }
             finally
             {
                 timeoutCts.Dispose();
-                tunnelInfo.Client?.Close();
+                tunnelInfo.Client.Close();
                 _udpMap.TryRemove(callbackEndpoint, out _);
                 _logger.LogDebug("UDP tunnel closed for {CallbackEndpoint}", callbackEndpoint);
             }
         }
 
+        /// <summary>
+        /// Tracks a task and periodically purges completed tasks to prevent unbounded growth.
+        /// </summary>
+        private void TrackActiveTask(Task task)
+        {
+            lock (_activeTasksLock)
+            {
+                // Purge completed tasks periodically to prevent unbounded memory growth
+                if (_activeTasks.Count >= 64)
+                {
+                    _activeTasks.RemoveAll(t => t.IsCompleted);
+                }
+                _activeTasks.Add(task);
+            }
+        }
+
         private class UdpTunnelInfo
         {
-            public UdpClient Client { get; init; }
+            public required UdpClient Client { get; init; }
             public DateTime LastActivity { get; set; }
         }
     }

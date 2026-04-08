@@ -7,6 +7,8 @@ namespace CatHole.Core
 {
     public class CatHoleRelayOption
     {
+        private static readonly JsonSerializerOptions s_jsonOptions = new() { WriteIndented = true };
+
         public Guid Id { get; init; } = Guid.NewGuid();
 
         public string Name { get; set; } = "Unnamed";
@@ -21,10 +23,10 @@ namespace CatHole.Core
 
         public bool UDP { get; set; } = true;
 
-        public int Timeout { get; set; } = 1000; // miliseconds
+        public TimeSpan SocketTimeout { get; set; } = TimeSpan.FromSeconds(1);
 
-        public int UdpTunnelTimeout { get; set; } = 60; // seconds
+        public TimeSpan UdpTunnelTimeout { get; set; } = TimeSpan.FromSeconds(60);
 
-        public override string ToString() =>JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true });
+        public override string ToString() => JsonSerializer.Serialize(this, s_jsonOptions);
     }
 }

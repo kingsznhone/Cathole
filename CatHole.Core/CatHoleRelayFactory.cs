@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace CatHole.Core
 {
@@ -9,9 +10,15 @@ namespace CatHole.Core
     {
         private readonly ILoggerFactory _loggerFactory;
 
+        /// <summary>
+        /// Initializes a new instance with no logging output.
+        /// </summary>
+        public CatHoleRelayFactory() : this(NullLoggerFactory.Instance) { }
+
         public CatHoleRelayFactory(ILoggerFactory loggerFactory)
         {
-            _loggerFactory = loggerFactory ?? throw new ArgumentNullException(nameof(loggerFactory));
+            ArgumentNullException.ThrowIfNull(loggerFactory);
+            _loggerFactory = loggerFactory;
         }
 
         /// <summary>
@@ -19,8 +26,7 @@ namespace CatHole.Core
         /// </summary>
         public CatHoleRelay CreateRelay(CatHoleRelayOption option)
         {
-            if (option == null)
-                throw new ArgumentNullException(nameof(option));
+            ArgumentNullException.ThrowIfNull(option);
 
             ValidateOption(option);
 
@@ -32,17 +38,14 @@ namespace CatHole.Core
         /// Creates a new Relay instance with a builder pattern
         /// </summary>
         public static RelayBuilder CreateBuilder(ILoggerFactory loggerFactory)
-        {
-            return new RelayBuilder(loggerFactory);
-        }
+            => new(loggerFactory);
 
         /// <summary>
         /// Validates relay options
         /// </summary>
         public static void ValidateOption(CatHoleRelayOption option)
         {
-            if (option == null)
-                throw new ArgumentNullException(nameof(option));
+            ArgumentNullException.ThrowIfNull(option);
 
             if (string.IsNullOrWhiteSpace(option.Name))
                 throw new ArgumentException("Relay name cannot be empty", nameof(option));
@@ -56,8 +59,11 @@ namespace CatHole.Core
             if (option.BufferSize <= 0)
                 throw new ArgumentException("BufferSize must be positive", nameof(option));
 
-            if (option.Timeout < 0)
-                throw new ArgumentException("Timeout cannot be negative", nameof(option));
+            if (option.SocketTimeout < TimeSpan.Zero)
+                throw new ArgumentException("SocketTimeout cannot be negative", nameof(option));
+
+            if (option.UdpTunnelTimeout < TimeSpan.Zero)
+                throw new ArgumentException("UdpTunnelTimeout cannot be negative", nameof(option));
 
             if (!option.TCP && !option.UDP)
                 throw new ArgumentException("At least one of TCP or UDP must be enabled", nameof(option));
@@ -67,7 +73,7 @@ namespace CatHole.Core
             {
                 System.Net.IPEndPoint.Parse(option.ListenHost);
             }
-            catch (Exception ex)
+            catch (FormatException ex)
             {
                 throw new ArgumentException($"Invalid ListenHost format: {option.ListenHost}", nameof(option), ex);
             }
@@ -76,7 +82,7 @@ namespace CatHole.Core
             {
                 System.Net.IPEndPoint.Parse(option.TargetHost);
             }
-            catch (Exception ex)
+            catch (FormatException ex)
             {
                 throw new ArgumentException($"Invalid TargetHost format: {option.TargetHost}", nameof(option), ex);
             }
@@ -90,10 +96,12 @@ namespace CatHole.Core
     {
         private readonly ILoggerFactory _loggerFactory;
         private readonly CatHoleRelayOption _option = new();
+        private bool _built;
 
         public RelayBuilder(ILoggerFactory loggerFactory)
         {
-            _loggerFactory = loggerFactory ?? throw new ArgumentNullException(nameof(loggerFactory));
+            ArgumentNullException.ThrowIfNull(loggerFactory);
+            _loggerFactory = loggerFactory;
         }
 
         public RelayBuilder WithName(string name)
@@ -120,9 +128,15 @@ namespace CatHole.Core
             return this;
         }
 
-        public RelayBuilder WithTimeout(int timeout)
+        public RelayBuilder WithSocketTimeout(TimeSpan timeout)
         {
-            _option.Timeout = timeout;
+            _option.SocketTimeout = timeout;
+            return this;
+        }
+
+        public RelayBuilder WithUdpTunnelTimeout(TimeSpan timeout)
+        {
+            _option.UdpTunnelTimeout = timeout;
             return this;
         }
 
@@ -154,7 +168,11 @@ namespace CatHole.Core
 
         public CatHoleRelay Build()
         {
+            if (_built)
+                throw new InvalidOperationException("Build() has already been called. Create a new RelayBuilder for each relay.");
+
             CatHoleRelayFactory.ValidateOption(_option);
+            _built = true;
             var logger = _loggerFactory.CreateLogger<CatHoleRelay>();
             return new CatHoleRelay(_option, logger);
         }

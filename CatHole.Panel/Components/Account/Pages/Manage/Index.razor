@@ -1,91 +1,156 @@
-﻿@page "/Account/Manage"
+@page "/Account/Manage"
+@rendermode InteractiveServer
 
-@using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Identity
 @using CatHole.Panel.Data
+@using CatHole.Panel.Services
 
 @inject UserManager<ApplicationUser> UserManager
-@inject SignInManager<ApplicationUser> SignInManager
-@inject IdentityRedirectManager RedirectManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject NotificationService NotificationService
+@inject ILogger<Index> Logger
+@inject JwtService JwtService
+@inject IJSRuntime JSRuntime
 
-<PageTitle>Profile</PageTitle>
+<PageTitle>Account</PageTitle>
 
-<h3>Profile</h3>
-<StatusMessage />
+<Title Level="3">Account</Title>
 
-<div class="row">
-    <div class="col-xl-6">
-        <EditForm Model="Input" FormName="profile" OnValidSubmit="OnValidSubmitAsync" method="post">
-            <DataAnnotationsValidator />
-            <ValidationSummary class="text-danger" role="alert" />
-            <div class="form-floating mb-3">
-                <input type="text" value="@username" id="username" class="form-control" placeholder="Choose your username." disabled />
-                <label for="username" class="form-label">Username</label>
-            </div>
-            <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.PhoneNumber" id="Input.PhoneNumber" class="form-control" placeholder="Enter your phone number" />
-                <label for="Input.PhoneNumber" class="form-label">Phone number</label>
-                <ValidationMessage For="() => Input.PhoneNumber" class="text-danger" />
-            </div>
-            <button type="submit" class="w-100 btn btn-lg btn-primary">Save</button>
-        </EditForm>
-    </div>
-</div>
+<Flex Direction="FlexDirection.Vertical" Gap="FlexGap.Large" Style="max-width: 480px;">
+
+    <Card Title="Profile">
+        <Descriptions Column="1">
+            <DescriptionsItem Title="Username">@_username</DescriptionsItem>
+        </Descriptions>
+    </Card>
+
+    @if (_hasPassword)
+    {
+        <Card Title="Change Password">
+            <Form @key="_pwFormKey" Model="@_pwForm" OnFinish="OnChangePasswordAsync" Layout="FormLayout.Vertical">
+                <FormItem Label="Current Password" Name="OldPassword"
+                          Rules="@(new[] { new FormValidationRule { Required = true } })">
+                    <InputPassword @bind-Value="@_pwForm.OldPassword" />
+                </FormItem>
+                <FormItem Label="New Password" Name="NewPassword"
+                          Rules="@(new[] { new FormValidationRule { Required = true, Min = 6, Message = "Must be at least 6 characters" } })">
+                    <InputPassword @bind-Value="@_pwForm.NewPassword" />
+                </FormItem>
+                <FormItem Label="Confirm Password" Name="ConfirmPassword"
+                          Rules="@(new[] { new FormValidationRule { Required = true } })">
+                    <InputPassword @bind-Value="@_pwForm.ConfirmPassword" />
+                </FormItem>
+                <Button Loading="@_pwLoading" HtmlType="submit" Type="ButtonType.Primary">
+                    Update Password
+                </Button>
+            </Form>
+        </Card>
+    }
+
+    <Card Title="API Token">
+        <Flex Gap="FlexGap.Small" Align="FlexAlign.Center">
+            <AntDesign.InputNumber @bind-Value="@_durationDays" Min="1" Max="3650" Style="width: 150px;" />
+            <Text>days</Text>
+            <Button OnClick="OnGenerateToken">Generate</Button>
+        </Flex>
+        @if (!string.IsNullOrEmpty(_generatedToken))
+        {
+            <Divider />
+            <Flex Direction="FlexDirection.Vertical" Gap="FlexGap.Small">
+                <Flex Justify="FlexJustify.SpaceBetween" Align="FlexAlign.Center">
+                    <Text Strong>Token</Text>
+                    <Button Size="ButtonSize.Small" Icon="copy" OnClick="CopyTokenAsync">Copy</Button>
+                </Flex>
+                <TextArea Value="@_generatedToken" Rows="5" ReadOnly Style="font-family: monospace; font-size: 12px;" />
+            </Flex>
+        }
+    </Card>
+
+</Flex>
 
 @code {
-    private ApplicationUser? user;
-    private string? username;
-    private string? phoneNumber;
+    private ApplicationUser? _user;
+    private string? _username;
+    private bool _hasPassword;
 
-    [CascadingParameter]
-    private HttpContext HttpContext { get; set; } = default!;
+    private PasswordForm _pwForm = new();
+    private int _pwFormKey;
+    private bool _pwLoading;
 
-    [SupplyParameterFromForm]
-    private InputModel Input { get; set; } = default!;
+    private int _durationDays = 30;
+    private string? _generatedToken;
 
     protected override async Task OnInitializedAsync()
     {
-        Input ??= new();
-
-        user = await UserManager.GetUserAsync(HttpContext.User);
-        if (user is null)
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        _user = await UserManager.GetUserAsync(authState.User);
+        if (_user is null)
         {
-            RedirectManager.RedirectToInvalidUser(UserManager, HttpContext);
+            NavigationManager.NavigateTo("/Account/Login");
             return;
         }
 
-        username = await UserManager.GetUserNameAsync(user);
-        phoneNumber = await UserManager.GetPhoneNumberAsync(user);
-
-        Input.PhoneNumber ??= phoneNumber;
+        _username = await UserManager.GetUserNameAsync(_user);
+        _hasPassword = await UserManager.HasPasswordAsync(_user);
     }
 
-    private async Task OnValidSubmitAsync()
+    private async Task OnChangePasswordAsync()
     {
-        if (user is null)
+        if (_user is null) return;
+
+        if (_pwForm.NewPassword != _pwForm.ConfirmPassword)
         {
-            RedirectManager.RedirectToInvalidUser(UserManager, HttpContext);
+            await NotificationService.Error(new NotificationConfig
+            {
+                Message = "Password mismatch",
+                Description = "New password and confirmation do not match."
+            });
             return;
         }
 
-        if (Input.PhoneNumber != phoneNumber)
+        _pwLoading = true;
+        try
         {
-            var setPhoneResult = await UserManager.SetPhoneNumberAsync(user, Input.PhoneNumber);
-            if (!setPhoneResult.Succeeded)
+            var result = await UserManager.ChangePasswordAsync(_user, _pwForm.OldPassword, _pwForm.NewPassword);
+            if (!result.Succeeded)
             {
-                RedirectManager.RedirectToCurrentPageWithStatus("Error: Failed to set phone number.", HttpContext);
+                await NotificationService.Error(new NotificationConfig
+                {
+                    Message = "Failed to change password",
+                    Description = string.Join(", ", result.Errors.Select(e => e.Description))
+                });
                 return;
             }
-        }
 
-        await SignInManager.RefreshSignInAsync(user);
-        RedirectManager.RedirectToCurrentPageWithStatus("Your profile has been updated", HttpContext);
+            Logger.LogInformation("User changed their password successfully.");
+            _pwForm = new();
+            _pwFormKey++;
+            await NotificationService.Success(new NotificationConfig { Message = "Password changed successfully." });
+        }
+        finally
+        {
+            _pwLoading = false;
+        }
     }
 
-    private sealed class InputModel
+    private void OnGenerateToken()
     {
-        [Phone]
-        [Display(Name = "Phone number")]
-        public string? PhoneNumber { get; set; }
+        if (_user is null) return;
+        _generatedToken = JwtService.BuildAccessToken(_user, TimeSpan.FromDays(_durationDays));
+    }
+
+    private async Task CopyTokenAsync()
+    {
+        if (_generatedToken is null) return;
+        await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", _generatedToken);
+    }
+
+    private sealed class PasswordForm
+    {
+        public string OldPassword { get; set; } = "";
+        public string NewPassword { get; set; } = "";
+        public string ConfirmPassword { get; set; } = "";
     }
 }
+

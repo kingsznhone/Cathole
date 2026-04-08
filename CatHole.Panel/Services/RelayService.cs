@@ -14,6 +14,9 @@ public sealed class RelayService
     private readonly CatHoleRelayManager _manager;
     private readonly ILogger<RelayService> _logger;
 
+    /// <summary>Fired on the calling thread after any relay list mutation (add, remove, update, replace-all).</summary>
+    public event Action? RelaysChanged;
+
     public RelayService(RelayConfigService config, CatHoleRelayManager manager, ILogger<RelayService> logger)
     {
         _config = config;
@@ -61,6 +64,7 @@ public sealed class RelayService
             await _config.RemoveAsync(option.Id);
             throw;
         }
+        RelaysChanged?.Invoke();
     }
 
     /// <summary>
@@ -71,6 +75,7 @@ public sealed class RelayService
     {
         await _manager.RemoveRelayAsync(id);
         await _config.RemoveAsync(id);
+        RelaysChanged?.Invoke();
     }
 
     /// <summary>
@@ -97,6 +102,55 @@ public sealed class RelayService
                 option.Name, id);
             throw;
         }
+        RelaysChanged?.Invoke();
+    }
+
+    /// <summary>
+    /// Stops all running relays
+    /// Relays that fail to start are logged but do not abort the rest.
+    /// </summary>
+    public async Task ReplaceAllAsync(IEnumerable<CatHoleRelayOption> options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        var list = options.ToList();
+        foreach (var o in list)
+            CatHoleRelayFactory.ValidateOption(o);
+
+        await _manager.StopAllAsync();
+        await _manager.ClearAsync();
+        await _config.ReplaceAllAsync(list);
+
+        foreach (var o in list)
+        {
+            try { _manager.AddRelay(o); }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to restart relay '{Name}' after config replace", o.Name);
+            }
+        }
+        RelaysChanged?.Invoke();
+    }
+
+    /// <summary>Starts all relays that are not currently running.</summary>
+    public void StartAll()
+    {
+        _manager.StartAll();
+        RelaysChanged?.Invoke();
+    }
+
+    /// <summary>Stops all running relays without removing them from config.</summary>
+    public async Task StopAllAsync()
+    {
+        await _manager.StopAllAsync();
+        RelaysChanged?.Invoke();
+    }
+
+    /// <summary>Stops and removes all relays from both runtime and config.</summary>
+    public async Task ClearAllAsync()
+    {
+        await _manager.ClearAsync();
+        await _config.ReplaceAllAsync([]);
+        RelaysChanged?.Invoke();
     }
 
     private async Task CheckPortConflictAsync(CatHoleRelayOption option, Guid? excludeId)

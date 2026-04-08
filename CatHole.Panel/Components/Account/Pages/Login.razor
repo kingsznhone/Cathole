@@ -1,4 +1,5 @@
 @page "/Account/Login"
+@attribute [ExcludeFromInteractiveRouting]
 
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Authentication
@@ -12,37 +13,45 @@
 
 <PageTitle>Log in</PageTitle>
 
-<h1>Log in</h1>
-<div class="row">
-    <div class="col-lg-4">
-        <section>
-            <StatusMessage Message="@errorMessage" />
+<div class="d-flex align-items-center justify-content-center">
+    <div class="card rounded-3 shadow-lg border-0">
+        <div class="card-body p-4 p-md-5">
             <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
                 <DataAnnotationsValidator />
-                <ValidationSummary class="text-danger" role="alert" />
-                <div class="form-floating mb-3">
-                    <InputText @bind-Value="Input.UserName" id="Input.UserName" class="form-control" autocomplete="username" aria-required="true" placeholder="username" />
-                    <label for="Input.UserName" class="form-label">Username</label>
-                    <ValidationMessage For="() => Input.UserName" class="text-danger" />
+                <div class="mb-3">
+                    <label for="Input.UserName" class="form-label fw-medium">Username</label>
+                    <InputText @bind-Value="Input.UserName" id="Input.UserName"
+                               class="form-control form-control-lg"
+                               autocomplete="username" aria-required="true"
+                               placeholder="Enter your username" />
+                    <ValidationMessage For="() => Input.UserName" class="text-danger small mt-1 d-block" />
                 </div>
-                <div class="form-floating mb-3">
-                    <InputText type="password" @bind-Value="Input.Password" id="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="password" />
-                    <label for="Input.Password" class="form-label">Password</label>
-                    <ValidationMessage For="() => Input.Password" class="text-danger" />
+                <div class="mb-3">
+                    <label for="Input.Password" class="form-label fw-medium">Password</label>
+                    <InputText type="password" @bind-Value="Input.Password" id="Input.Password"
+                               class="form-control form-control-lg"
+                               autocomplete="current-password" aria-required="true"
+                               placeholder="Enter your password" />
+                    <ValidationMessage For="() => Input.Password" class="text-danger small mt-1 d-block" />
                 </div>
-                <div class="checkbox mb-3">
-                    <label class="form-label">
-                        <InputCheckbox @bind-Value="Input.RememberMe" class="darker-border-checkbox form-check-input" />
+                <div class="mb-4">
+                    <label class="form-check-label d-flex align-items-center gap-2 user-select-none" style="cursor: pointer;">
+                        <InputCheckbox @bind-Value="Input.RememberMe" class="form-check-input mt-0" />
                         Remember me
                     </label>
                 </div>
-                <div>
-                    <button type="submit" class="w-100 btn btn-lg btn-primary">Log in</button>
-                </div>
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <div class="alert alert-danger d-flex align-items-center gap-2 py-2" role="alert">
+                        <span>@errorMessage</span>
+                    </div>
+                }
+                <button type="submit" class="btn btn-primary btn-lg w-100">Login</button>
             </EditForm>
-        </section>
+        </div>
     </div>
 </div>
+
 
 @code {
     private string? errorMessage;

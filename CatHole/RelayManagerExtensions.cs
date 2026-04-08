@@ -20,11 +20,8 @@ public static class RelayManagerExtensions
         IConfiguration configuration,
         string sectionName = "Relays")
     {
-        if (manager == null)
-            throw new ArgumentNullException(nameof(manager));
-        
-        if (configuration == null)
-            throw new ArgumentNullException(nameof(configuration));
+        ArgumentNullException.ThrowIfNull(manager);
+        ArgumentNullException.ThrowIfNull(configuration);
 
         var relayOptions = configuration.GetSection(sectionName).Get<List<CatHoleRelayOption>>();
 
@@ -34,17 +31,5 @@ public static class RelayManagerExtensions
         }
 
         return manager.AddRelays(relayOptions);
-    }
-
-    /// <summary>
-    /// Loads relays from IConfiguration section asynchronously
-    /// </summary>
-    public static Task<int> LoadFromConfigurationAsync(
-        this CatHoleRelayManager manager,
-        IConfiguration configuration,
-        string sectionName = "Relays")
-    {
-        var count = manager.LoadFromConfiguration(configuration, sectionName);
-        return Task.FromResult(count);
     }
 }
