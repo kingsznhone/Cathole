@@ -4,10 +4,11 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using CatHole.Panel.Data;
+using CatHole.Panel.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
-using CatHole.Panel.Models;
+
 namespace CatHole.Panel.Services
 {
     public class JwtService
@@ -31,7 +32,7 @@ namespace CatHole.Panel.Services
             _jwtKey = Convert.FromHexString(_jwtSetting.Key);
         }
 
-        public string BuildAccessToken(ApplicationUser user,TimeSpan duration)
+        public string BuildAccessToken(ApplicationUser user, TimeSpan duration)
         {
             var TokenHandler = new JwtSecurityTokenHandler();
             var TokenKey = new SymmetricSecurityKey(_jwtKey);
@@ -90,6 +91,5 @@ namespace CatHole.Panel.Services
                 }
             }
         }
-
     }
 }

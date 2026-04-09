@@ -51,6 +51,25 @@ namespace CatHole.Panel.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Relays",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
+                    Name = table.Column<string>(type: "TEXT", nullable: false),
+                    ListenHost = table.Column<string>(type: "TEXT", nullable: false),
+                    TargetHost = table.Column<string>(type: "TEXT", nullable: false),
+                    BufferSize = table.Column<int>(type: "INTEGER", nullable: false),
+                    Tcp = table.Column<bool>(type: "INTEGER", nullable: false),
+                    Udp = table.Column<bool>(type: "INTEGER", nullable: false),
+                    SocketTimeout = table.Column<TimeSpan>(type: "TEXT", nullable: false),
+                    UdpTunnelTimeout = table.Column<TimeSpan>(type: "TEXT", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Relays", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "AspNetRoleClaims",
                 columns: table => new
                 {
@@ -216,6 +235,12 @@ namespace CatHole.Panel.Migrations
                 table: "AspNetUsers",
                 column: "NormalizedUserName",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Relays_Name",
+                table: "Relays",
+                column: "Name",
+                unique: true);
         }
 
         /// <inheritdoc />
@@ -238,6 +263,9 @@ namespace CatHole.Panel.Migrations
 
             migrationBuilder.DropTable(
                 name: "AspNetUserTokens");
+
+            migrationBuilder.DropTable(
+                name: "Relays");
 
             migrationBuilder.DropTable(
                 name: "AspNetRoles");

@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="CatHole.CLI/CatHole.CLI.csproj" />
+  <Project Path="CatHole.Core/CatHole.Core.csproj" />
+  <Project Path="CatHole.Panel/CatHole.Panel.csproj" />
+</Solution>

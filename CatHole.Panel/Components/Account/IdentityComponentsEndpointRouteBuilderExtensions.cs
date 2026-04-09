@@ -2,17 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Security.Claims;
-using System.Text.Json;
-using CatHole.Panel.Components.Account.Pages;
-using CatHole.Panel.Components.Account.Pages.Manage;
 using CatHole.Panel.Data;
-using Microsoft.AspNetCore.Antiforgery;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Primitives;
 
 namespace Microsoft.AspNetCore.Routing
 {

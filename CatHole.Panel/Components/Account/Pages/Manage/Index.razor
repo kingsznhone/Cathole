@@ -4,7 +4,7 @@
 @using Microsoft.AspNetCore.Identity
 @using CatHole.Panel.Data
 @using CatHole.Panel.Services
-
+@inject NotificationService _notice
 @inject UserManager<ApplicationUser> UserManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavigationManager
@@ -60,7 +60,7 @@
             <Flex Direction="FlexDirection.Vertical" Gap="FlexGap.Small">
                 <Flex Justify="FlexJustify.SpaceBetween" Align="FlexAlign.Center">
                     <Text Strong>Token</Text>
-                    <Button Size="ButtonSize.Small" Icon="copy" OnClick="CopyTokenAsync">Copy</Button>
+                    <Button Icon="copy" OnClick="CopyTokenAsync">Copy</Button>
                 </Flex>
                 <TextArea Value="@_generatedToken" Rows="5" ReadOnly Style="font-family: monospace; font-size: 12px;" />
             </Flex>
@@ -138,12 +138,20 @@
     {
         if (_user is null) return;
         _generatedToken = JwtService.BuildAccessToken(_user, TimeSpan.FromDays(_durationDays));
+        _ = _notice.Success(new NotificationConfig()
+        {
+            Message = "JWT Token Generated"
+        });
     }
 
     private async Task CopyTokenAsync()
     {
         if (_generatedToken is null) return;
         await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", _generatedToken);
+        _ = _notice.Success(new NotificationConfig()
+        {
+            Message = "JWT Token Copied"
+        });
     }
 
     private sealed class PasswordForm

@@ -3,7 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace CatHole;
+namespace CatHole.CLI;
 
 /// <summary>
 /// Hosted service implementation for ASP.NET Core applications.
@@ -40,14 +40,14 @@ public class RelayHostedService : IHostedService
 
         try
         {
-            var count = _relayManager.LoadFromConfiguration(_configuration);
-
-            if (count == 0)
+            var relayOptions = _configuration.GetSection("Relays").Get<List<CatHoleRelayOption>>();
+            if (relayOptions is not { Count: > 0 })
             {
                 _logger.LogWarning("No relay configurations found in appsettings.json");
             }
             else
             {
+                var count = _relayManager.AddRelays(relayOptions);
                 _logger.LogInformation("Started {Count} relays successfully", count);
             }
         }

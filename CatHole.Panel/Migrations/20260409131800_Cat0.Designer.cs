@@ -11,14 +11,14 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CatHole.Panel.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260216013623_Cat0")]
+    [Migration("20260409131800_Cat0")]
     partial class Cat0
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "10.0.3");
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.5");
 
             modelBuilder.Entity("CatHole.Panel.Data.ApplicationUser", b =>
                 {
@@ -83,6 +83,46 @@ namespace CatHole.Panel.Migrations
                         .HasDatabaseName("UserNameIndex");
 
                     b.ToTable("AspNetUsers", (string)null);
+                });
+
+            modelBuilder.Entity("CatHole.Panel.Data.RelayEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("BufferSize")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ListenHost")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<TimeSpan>("SocketTimeout")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TargetHost")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("Tcp")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("Udp")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<TimeSpan>("UdpTunnelTimeout")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("Relays");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>

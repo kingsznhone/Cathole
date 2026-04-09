@@ -8,5 +8,15 @@ namespace CatHole.Panel.Data
 {
     public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : IdentityDbContext<ApplicationUser>(options)
     {
+        internal DbSet<RelayEntry> Relays => Set<RelayEntry>();
+
+        protected override void OnModelCreating(ModelBuilder builder)
+        {
+            base.OnModelCreating(builder);
+
+            builder.Entity<RelayEntry>(e =>
+            {
+            });
+        }
     }
 }

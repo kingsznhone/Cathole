@@ -9,5 +9,4 @@ namespace CatHole.Panel.Data
     public class ApplicationUser : IdentityUser
     {
     }
-
 }

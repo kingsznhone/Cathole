@@ -1,65 +1,51 @@
-using System.Text.Json;
 using CatHole.Core;
+using CatHole.Panel.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace CatHole.Panel.Services;
 
 /// <summary>
-/// Singleton service for persisting relay configurations to data/relays.json.
-/// Maintains an in-memory cache as the source of truth; every mutation is
-/// atomically flushed to disk via a .tmp → rename pattern.
+/// Singleton service for persisting relay configurations to the application database.
+/// Each operation creates its own <see cref="ApplicationDbContext"/> via the factory,
+/// which is safe for use from a singleton lifetime.
 /// </summary>
 public sealed class RelayConfigService
 {
-    private readonly string _configPath;
+    private readonly IDbContextFactory<ApplicationDbContext> _dbFactory;
     private readonly ILogger<RelayConfigService> _logger;
-    private readonly SemaphoreSlim _lock = new(1, 1);
-    private List<CatHoleRelayOption>? _cache;
 
-    private static readonly JsonSerializerOptions _jsonOptions = new() { WriteIndented = true };
-
-    public RelayConfigService(IConfiguration configuration, ILogger<RelayConfigService> logger)
+    public RelayConfigService(IDbContextFactory<ApplicationDbContext> dbFactory, ILogger<RelayConfigService> logger)
     {
+        _dbFactory = dbFactory;
         _logger = logger;
-        var dataPath = configuration["DataPath"] ?? "data";
-        _configPath = Path.Combine(dataPath, "relays.json");
     }
 
     public async Task<IReadOnlyList<CatHoleRelayOption>> GetAllAsync()
     {
-        await _lock.WaitAsync();
-        try
-        {
-            await EnsureLoadedAsync();
-            return _cache!.AsReadOnly();
-        }
-        finally { _lock.Release(); }
+        await using var db = await _dbFactory.CreateDbContextAsync();
+        var entries = await db.Relays.AsNoTracking().ToListAsync();
+        return entries.ConvertAll(ToOption).AsReadOnly();
     }
 
     public async Task AddAsync(CatHoleRelayOption option)
     {
         ArgumentNullException.ThrowIfNull(option);
-        await _lock.WaitAsync();
-        try
-        {
-            await EnsureLoadedAsync();
-            if (_cache!.Any(r => r.Name == option.Name))
-                throw new InvalidOperationException($"Relay '{option.Name}' already exists.");
-            _cache.Add(option);
-            await PersistAsync();
-        }
-        finally { _lock.Release(); }
+        await using var db = await _dbFactory.CreateDbContextAsync();
+        if (await db.Relays.AnyAsync(r => r.Name == option.Name))
+            throw new InvalidOperationException($"Relay '{option.Name}' already exists.");
+        db.Relays.Add(ToEntry(option));
+        await db.SaveChangesAsync();
     }
 
     public async Task RemoveAsync(Guid id)
     {
-        await _lock.WaitAsync();
-        try
+        await using var db = await _dbFactory.CreateDbContextAsync();
+        var entry = await db.Relays.FindAsync(id);
+        if (entry is not null)
         {
-            await EnsureLoadedAsync();
-            if (_cache!.RemoveAll(r => r.Id == id) > 0)
-                await PersistAsync();
+            db.Relays.Remove(entry);
+            await db.SaveChangesAsync();
         }
-        finally { _lock.Release(); }
     }
 
     /// <summary>
@@ -69,13 +55,8 @@ public sealed class RelayConfigService
     /// </summary>
     public async Task<bool> ExistsAsync(string name)
     {
-        await _lock.WaitAsync();
-        try
-        {
-            await EnsureLoadedAsync();
-            return _cache!.Any(r => r.Name == name);
-        }
-        finally { _lock.Release(); }
+        await using var db = await _dbFactory.CreateDbContextAsync();
+        return await db.Relays.AnyAsync(r => r.Name == name);
     }
 
     /// <param name="id">The id used to locate the entry.</param>
@@ -83,19 +64,13 @@ public sealed class RelayConfigService
     public async Task UpdateAsync(Guid id, CatHoleRelayOption option)
     {
         ArgumentNullException.ThrowIfNull(option);
-        await _lock.WaitAsync();
-        try
-        {
-            await EnsureLoadedAsync();
-            var idx = _cache!.FindIndex(r => r.Id == id);
-            if (idx < 0)
-                throw new KeyNotFoundException($"Relay [{id}] not found.");
-            if (_cache[idx].Name != option.Name && _cache.Any(r => r.Name == option.Name))
-                throw new InvalidOperationException($"Relay '{option.Name}' already exists.");
-            _cache[idx] = option;
-            await PersistAsync();
-        }
-        finally { _lock.Release(); }
+        await using var db = await _dbFactory.CreateDbContextAsync();
+        var entry = await db.Relays.FindAsync(id)
+            ?? throw new KeyNotFoundException($"Relay [{id}] not found.");
+        if (entry.Name != option.Name && await db.Relays.AnyAsync(r => r.Name == option.Name))
+            throw new InvalidOperationException($"Relay '{option.Name}' already exists.");
+        UpdateEntry(entry, option);
+        await db.SaveChangesAsync();
     }
 
     /// <summary>
@@ -104,47 +79,48 @@ public sealed class RelayConfigService
     public async Task ReplaceAllAsync(IEnumerable<CatHoleRelayOption> options)
     {
         ArgumentNullException.ThrowIfNull(options);
-        await _lock.WaitAsync();
-        try
-        {
-            _cache = [.. options];
-            await PersistAsync();
-        }
-        finally { _lock.Release(); }
+        var list = options.ToList();
+        await using var db = await _dbFactory.CreateDbContextAsync();
+        await db.Relays.ExecuteDeleteAsync();
+        db.Relays.AddRange(list.ConvertAll(ToEntry));
+        await db.SaveChangesAsync();
     }
 
-    // Must be called while holding _lock.
-    private async Task EnsureLoadedAsync()
+    private static CatHoleRelayOption ToOption(RelayEntry e) => new()
     {
-        if (_cache is not null) return;
+        Id = e.Id,
+        Name = e.Name,
+        ListenHost = e.ListenHost,
+        TargetHost = e.TargetHost,
+        BufferSize = e.BufferSize,
+        TCP = e.Tcp,
+        UDP = e.Udp,
+        SocketTimeout =e.SocketTimeout,
+        UdpTunnelTimeout =e.UdpTunnelTimeout,
+    };
 
-        if (!File.Exists(_configPath))
-        {
-            _logger.LogInformation("No relay config found at {Path}, starting with empty list", _configPath);
-            _cache = [];
-            return;
-        }
-
-        try
-        {
-            var json = await File.ReadAllTextAsync(_configPath);
-            _cache = JsonSerializer.Deserialize<List<CatHoleRelayOption>>(json, _jsonOptions) ?? [];
-            _logger.LogInformation("Loaded {Count} relay configs from {Path}", _cache.Count, _configPath);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to load relay config from {Path}, starting with empty list", _configPath);
-            _cache = [];
-        }
-    }
-
-    // Must be called while holding _lock.
-    private async Task PersistAsync()
+    private static RelayEntry ToEntry(CatHoleRelayOption o) => new()
     {
-        var tmp = _configPath + ".tmp";
-        var json = JsonSerializer.Serialize(_cache, _jsonOptions);
-        await File.WriteAllTextAsync(tmp, json);
-        File.Move(tmp, _configPath, overwrite: true);
-        _logger.LogDebug("Persisted {Count} relay configs to {Path}", _cache!.Count, _configPath);
+        Id = o.Id,
+        Name = o.Name,
+        ListenHost = o.ListenHost,
+        TargetHost = o.TargetHost,
+        BufferSize = o.BufferSize,
+        Tcp = o.TCP,
+        Udp = o.UDP,
+        SocketTimeout = o.SocketTimeout,
+        UdpTunnelTimeout = o.UdpTunnelTimeout,
+    };
+
+    private static void UpdateEntry(RelayEntry entry, CatHoleRelayOption o)
+    {
+        entry.Name = o.Name;
+        entry.ListenHost = o.ListenHost;
+        entry.TargetHost = o.TargetHost;
+        entry.BufferSize = o.BufferSize;
+        entry.Tcp = o.TCP;
+        entry.Udp = o.UDP;
+        entry.SocketTimeout = o.SocketTimeout;
+        entry.UdpTunnelTimeout = o.UdpTunnelTimeout;
     }
 }

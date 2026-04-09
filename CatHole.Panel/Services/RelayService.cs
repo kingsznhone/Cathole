@@ -145,6 +145,27 @@ public sealed class RelayService
         RelaysChanged?.Invoke();
     }
 
+    /// <summary>Returns a single configured relay option by id, or null if not found.</summary>
+    public async Task<CatHoleRelayOption?> GetByIdAsync(Guid id)
+    {
+        var all = await _config.GetAllAsync();
+        return all.FirstOrDefault(o => o.Id == id);
+    }
+
+    /// <summary>Starts a relay that is already registered in the manager but not currently running.</summary>
+    public void StartRelay(Guid id)
+    {
+        _manager.StartRelay(id);
+        RelaysChanged?.Invoke();
+    }
+
+    /// <summary>Stops a relay without removing it from the manager or config.</summary>
+    public async Task StopRelayAsync(Guid id)
+    {
+        await _manager.StopRelayAsync(id);
+        RelaysChanged?.Invoke();
+    }
+
     /// <summary>Stops and removes all relays from both runtime and config.</summary>
     public async Task ClearAllAsync()
     {
