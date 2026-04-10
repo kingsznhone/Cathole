@@ -30,9 +30,8 @@ jobs:
             echo "Found version tag: $VERSION_TAG"
           else
             SHORT_SHA=$(git rev-parse --short HEAD)
-            TIMESTAMP=$(date -u +"%Y%m%d")
-            echo "version=${TIMESTAMP}-${SHORT_SHA}" >> $GITHUB_OUTPUT
-            echo "No version tag found, using: ${TIMESTAMP}-${SHORT_SHA}"
+            echo "version=${SHORT_SHA}" >> $GITHUB_OUTPUT
+            echo "No version tag found, using: ${SHORT_SHA}"
           fi
 
   build:
@@ -46,37 +45,37 @@ jobs:
           - os: ubuntu-latest
             rid: win-x64
             mode: framework
-            ext: zip
+            suffix: ""
           - os: ubuntu-latest
             rid: linux-x64
             mode: framework
-            ext: tar.gz
+            suffix: ""
           - os: ubuntu-latest
             rid: linux-arm64
             mode: framework
-            ext: tar.gz
+            suffix: ""
           - os: ubuntu-latest
             rid: osx-arm64
             mode: framework
-            ext: tar.gz
+            suffix: ""
 
           # AOT: must run on native platform
           - os: windows-latest
             rid: win-x64
             mode: aot
-            ext: zip
+            suffix: -aot
           - os: ubuntu-latest
             rid: linux-x64
             mode: aot
-            ext: tar.gz
+            suffix: -aot
           - os: ubuntu-24.04-arm
             rid: linux-arm64
             mode: aot
-            ext: tar.gz
+            suffix: -aot
           - os: macos-latest
             rid: osx-arm64
             mode: aot
-            ext: tar.gz
+            suffix: -aot
 
     runs-on: ${{ matrix.os }}
 
@@ -86,7 +85,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: '10.0.x'
+          dotnet-version: '10'
 
       - name: Install AOT prerequisites (Linux)
         if: matrix.mode == 'aot' && runner.os == 'Linux'
@@ -113,24 +112,11 @@ jobs:
           -p:PublishTrimmed=true
           -o publish/out
 
-      - name: Package (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: Compress-Archive -Path "publish\out\*" -DestinationPath "cathole-cli-${{ needs.get-version.outputs.version }}-${{ matrix.rid }}-${{ matrix.mode }}.zip"
-
-      - name: Package as zip (non-Windows)
-        if: runner.os != 'Windows' && matrix.ext == 'zip'
-        run: zip -jr "cathole-cli-${{ needs.get-version.outputs.version }}-${{ matrix.rid }}-${{ matrix.mode }}.zip" publish/out/
-
-      - name: Package as tar.gz
-        if: matrix.ext == 'tar.gz'
-        run: tar -czf "cathole-cli-${{ needs.get-version.outputs.version }}-${{ matrix.rid }}-${{ matrix.mode }}.tar.gz" -C publish/out .
-
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
-          name: cathole-cli-${{ needs.get-version.outputs.version }}-${{ matrix.rid }}-${{ matrix.mode }}
-          path: cathole-cli-${{ needs.get-version.outputs.version }}-${{ matrix.rid }}-${{ matrix.mode }}.${{ matrix.ext }}
+          name: cathole-cli-${{ needs.get-version.outputs.version }}-${{ matrix.rid }}${{ matrix.suffix }}
+          path: publish/out/
           if-no-files-found: error
 
   verify-builds:
@@ -158,7 +144,7 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           path: release-assets
-          merge-multiple: true
+          merge-multiple: false
 
       - name: Verify release assets
         run: find release-assets -type f | sort
@@ -166,5 +152,5 @@ jobs:
       - name: Upload release assets
         uses: softprops/action-gh-release@v2
         with:
-          files: release-assets/**
+          files: release-assets/**/*
           token: ${{ secrets.GITHUB_TOKEN }}
