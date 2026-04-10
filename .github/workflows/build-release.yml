@@ -192,7 +192,7 @@ jobs:
           for dir in release-assets/*/; do
             name=$(basename "$dir")
             if [[ "$name" == *win-x64* ]]; then
-              zip -r "packaged/${name}.zip" "$dir" --junk-paths
+              (cd "$dir" && zip -r "${GITHUB_WORKSPACE}/packaged/${name}.zip" .)
             else
               tar -czf "packaged/${name}.tar.gz" -C "$dir" .
             fi
