@@ -1,0 +1,25 @@
+<Project>
+
+  <!--
+    Shared properties for all projects in this solution.
+    Each project maintains its own <Version> independently.
+    When CatFlap.Core has a major update, align the major version across all projects manually.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+  </PropertyGroup>
+
+  <!-- Shared NuGet / package metadata (used by CatFlap.Core when packed) -->
+  <PropertyGroup>
+    <Authors>kingsznhone</Authors>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/kingsznhone/CatFlap</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/kingsznhone/CatFlap</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+  </PropertyGroup>
+
+</Project>

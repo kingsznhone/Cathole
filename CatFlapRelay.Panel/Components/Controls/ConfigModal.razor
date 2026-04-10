@@ -1,0 +1,74 @@
+@using System.Text.Json
+@using CatFlapRelay
+@using CatFlapRelay.Panel
+@using CatFlapRelay.Panel.Components
+@using CatFlapRelay.Panel.Components.Layout
+@using CatFlapRelay.Panel.Services
+@inject RelayService RelayService
+@inject NotificationService _notice
+
+<Modal Visible="@_visible"
+       Title="Raw Config (JSON)"
+       OnOk="HandleOk"
+       OnCancel="HandleCancel"
+       Style="width:720px">
+    <TextArea @bind-Value="_json"
+              Rows="20"
+              Style="font-family:monospace;font-size:13px"
+              AllowClear />
+    @if (_errorMessage is not null)
+    {
+        <Alert Type="@AlertType.Error" Message="@_errorMessage" Style="margin-top:8px" />
+    }
+</Modal>
+
+@code {
+    private bool _visible;
+    private string _json = string.Empty;
+    private string? _errorMessage;
+
+    private static readonly JsonSerializerOptions s_jsonOptions = new() { WriteIndented = true };
+
+    public async Task Show()
+    {
+        _errorMessage = null;
+        var options = await RelayService.GetAllOptions();
+        _json = JsonSerializer.Serialize(options, s_jsonOptions);
+        _visible = true;
+        StateHasChanged();
+    }
+
+    private async Task HandleOk()
+    {
+        _errorMessage = null;
+        List<FlapRelayOption>? parsed;
+        try
+        {
+            parsed = JsonSerializer.Deserialize<List<FlapRelayOption>>(_json, s_jsonOptions);
+            if (parsed is null) throw new JsonException("Result was null.");
+        }
+        catch (JsonException ex)
+        {
+            _errorMessage = $"Invalid JSON: {ex.Message}";
+            return;
+        }
+
+        try
+        {
+            await RelayService.ReplaceAllAsync(parsed);
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+            return;
+        }
+
+        _visible = false;
+    }
+
+    private void HandleCancel(MouseEventArgs e)
+    {
+        _errorMessage = null;
+        _visible = false;
+    }
+}

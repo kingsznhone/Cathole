@@ -1,5 +1,0 @@
-<Solution>
-  <Project Path="CatFlap.CLI/CatFlap.CLI.csproj" />
-  <Project Path="CatFlap.Core/CatFlap.Core.csproj" />
-  <Project Path="CatFlap.Panel/CatFlap.Panel.csproj" />
-</Solution>

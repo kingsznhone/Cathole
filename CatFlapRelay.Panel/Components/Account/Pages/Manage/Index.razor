@@ -1,0 +1,184 @@
+@page "/Account/Manage"
+@rendermode InteractiveServer
+
+@using CatFlapRelay.Panel
+@using CatFlapRelay.Panel.Components
+@using CatFlapRelay.Panel.Components.Account.Shared
+@using CatFlapRelay.Panel.Components.Layout
+@using CatFlapRelay.Panel.Data
+@using CatFlapRelay.Panel.Services
+@using Microsoft.AspNetCore.Identity
+@inject NotificationService _notice
+@inject UserManager<ApplicationUser> UserManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject ILogger<Index> Logger
+@inject JwtService JwtService
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Account</PageTitle>
+
+<Title Level="3">Account</Title>
+
+<Flex Direction="FlexDirection.Vertical" Gap="FlexGap.Large" Style="max-width: 960px;">
+
+    <Card Title="Profile">
+        <Descriptions Column="1" Bordered>
+            <DescriptionsItem Title="Username">@_username</DescriptionsItem>
+        </Descriptions>
+    </Card>
+
+    @if (_hasPassword)
+    {
+        <Card Title="Change Password">
+            <Form @key="_pwFormKey" Model="@_pwForm" OnFinish="OnChangePasswordAsync" Layout="FormLayout.Vertical">
+                <FormItem Label="Current Password" Name="OldPassword"
+                          Rules="@(new[] { new FormValidationRule { Required = true } })">
+                    <InputPassword @bind-Value="@_pwForm.OldPassword" />
+                </FormItem>
+                <FormItem Label="New Password" Name="NewPassword"
+                          Rules="@(new[] { new FormValidationRule { Required = true, Min = 6, Message = "Must be at least 6 characters" } })">
+                    <InputPassword @bind-Value="@_pwForm.NewPassword" />
+                </FormItem>
+                <FormItem Label="Confirm Password" Name="ConfirmPassword"
+                          Rules="@(new[] { new FormValidationRule { Required = true } })">
+                    <InputPassword @bind-Value="@_pwForm.ConfirmPassword" />
+                </FormItem>
+                <Button Loading="@_pwLoading" HtmlType="submit" Type="ButtonType.Primary">
+                    Update Password
+                </Button>
+            </Form>
+        </Card>
+    }
+
+    <Card Title="API Token">
+        <Flex Gap="FlexGap.Small" Align="FlexAlign.Center">
+            <AntDesign.InputNumber @bind-Value="@_durationDays" Min="1" Max="3650" Style="width: 150px;" />
+            <Text>days</Text>
+            <Button OnClick="OnGenerateToken">Generate</Button>
+        </Flex>
+        <Divider/>
+
+        <Flex Direction="FlexDirection.Horizontal" Gap=" FlexGap.Middle">
+            <Text>Usage:</Text>
+            <Text Code>
+                curl -X 'GET' '/api/v1/Relay' -H 'Authorization: Bearer &lt;JWT Token&gt;'
+            </Text>
+        </Flex>
+        @if (!string.IsNullOrEmpty(_generatedToken))
+        {
+            <Divider />
+            <Flex Direction="FlexDirection.Vertical" Gap="FlexGap.Small">
+                <Flex Justify="FlexJustify.SpaceBetween" Align="FlexAlign.Center">
+                    <Text Strong>JWT Token</Text>
+                    <Button Icon="copy" OnClick="CopyTokenAsync">Copy</Button>
+                </Flex>
+                <TextArea Value="@_generatedToken" Rows="5" ReadOnly Style="font-family: monospace; font-size: 12px;" />
+            </Flex>
+        }
+    </Card>
+
+</Flex>
+
+@code {
+    private ApplicationUser? _user;
+    private string? _username;
+    private bool _hasPassword;
+
+    private PasswordForm _pwForm = new();
+    private int _pwFormKey;
+    private bool _pwLoading;
+
+    private int _durationDays = 30;
+    private string? _generatedToken;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        _user = await UserManager.GetUserAsync(authState.User);
+        if (_user is null)
+        {
+            NavigationManager.NavigateTo("/Account/Login");
+            return;
+        }
+
+        _username = await UserManager.GetUserNameAsync(_user);
+        _hasPassword = await UserManager.HasPasswordAsync(_user);
+    }
+
+    private async Task OnChangePasswordAsync()
+    {
+        if (_user is null) return;
+
+        if (_pwForm.NewPassword != _pwForm.ConfirmPassword)
+        {
+            _ = _notice.Error(new NotificationConfig
+            {
+                Message = "Password mismatch",
+                Description = "New password and confirmation do not match.",
+                Duration  = 10
+            });
+            return;
+        }
+
+        _pwLoading = true;
+        try
+        {
+            var result = await UserManager.ChangePasswordAsync(_user, _pwForm.OldPassword, _pwForm.NewPassword);
+            if (!result.Succeeded)
+            {
+                _= _notice.Error(new NotificationConfig
+                {
+                    Message = "Failed to change password",
+                    Description = string.Join(", ", result.Errors.Select(e => e.Description)),
+                    Duration = 10
+                });
+
+                return;
+            }
+
+            Logger.LogInformation("User changed their password successfully.");
+            _pwForm = new();
+            _pwFormKey++;
+            _ = _notice.Success(new NotificationConfig()
+            {
+                Message = "Password changed successfully.",
+                Duration = 10
+            });
+        }
+        finally
+        {
+            _pwLoading = false;
+        }
+    }
+
+    private void OnGenerateToken()
+    {
+        if (_user is null) return;
+        _generatedToken = JwtService.BuildAccessToken(_user, TimeSpan.FromDays(_durationDays));
+        _ = _notice.Success(new NotificationConfig()
+        {
+            Message = "JWT Token Generated",
+            Duration = 10
+        });
+    }
+
+    private async Task CopyTokenAsync()
+    {
+        if (_generatedToken is null) return;
+        await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", _generatedToken);
+        _ = _notice.Success(new NotificationConfig()
+        {
+            Message = "JWT Token Copied",
+            Duration = 10
+        });
+    }
+
+    private sealed class PasswordForm
+    {
+        public string OldPassword { get; set; } = "";
+        public string NewPassword { get; set; } = "";
+        public string ConfirmPassword { get; set; } = "";
+    }
+}
+

@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/解决方案项/">
+    <File Path=".dockerignore" />
+    <File Path=".editorconfig" />
+    <File Path=".gitattributes" />
+    <File Path=".gitignore" />
+    <File Path="Directory.Build.props" />
+    <File Path="Dockerfile" />
+    <File Path="LICENSE" />
+  </Folder>
+  <Project Path="CatFlapRelay.CLI/CatFlapRelay.CLI.csproj" />
+  <Project Path="CatFlapRelay.Panel/CatFlapRelay.Panel.csproj" />
+  <Project Path="CatFlapRelay/CatFlapRelay.csproj" />
+</Solution>

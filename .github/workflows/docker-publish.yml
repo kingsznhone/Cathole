@@ -56,9 +56,9 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            kingsznhone/catflap:latest
-            kingsznhone/catflap:${{ steps.version.outputs.version }}
-            kingsznhone/catflap:${{ steps.version.outputs.sha }}
+            kingsznhone/catflap-relay:latest
+            kingsznhone/catflap-relay:${{ steps.version.outputs.version }}
+            kingsznhone/catflap-relay:${{ steps.version.outputs.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -71,14 +71,14 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            kingsznhone/catflap:${{ steps.version.outputs.sha }}
+            kingsznhone/catflap-relay:${{ steps.version.outputs.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - name: Output image info
         run: |
-          echo "Image pushed: kingsznhone/catflap:${{ steps.version.outputs.sha }}"
+          echo "Image pushed: kingsznhone/catflap-relay:${{ steps.version.outputs.sha }}"
           if [ -n "${{ steps.version.outputs.version }}" ]; then
-            echo "Version tag:  kingsznhone/catflap:${{ steps.version.outputs.version }}"
-            echo "Latest tag:   kingsznhone/catflap:latest"
+            echo "Version tag:  kingsznhone/catflap-relay:${{ steps.version.outputs.version }}"
+            echo "Latest tag:   kingsznhone/catflap-relay:latest"
           fi
