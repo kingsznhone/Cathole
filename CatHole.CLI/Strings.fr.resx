@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <data name="RootDescription" xml:space="preserve">
+    <value>CatHole - Service de relais TCP/UDP haute performance
+Utilisation : cathole -l 0.0.0.0:8080 -t 192.168.1.100:80</value>
+  </data>
+  <data name="ListenDescription" xml:space="preserve">
+    <value>Point d'écoute, p.ex. 0.0.0.0:8080 ou [::]:8080</value>
+  </data>
+  <data name="TargetDescription" xml:space="preserve">
+    <value>Point cible vers lequel rediriger le trafic, p.ex. 192.168.1.100:80</value>
+  </data>
+  <data name="NameDescription" xml:space="preserve">
+    <value>Nom du relais</value>
+  </data>
+  <data name="NoTcpDescription" xml:space="preserve">
+    <value>Désactiver le transfert TCP (activé par défaut)</value>
+  </data>
+  <data name="NoUdpDescription" xml:space="preserve">
+    <value>Désactiver le transfert UDP (activé par défaut)</value>
+  </data>
+  <data name="BufferSizeDescription" xml:space="preserve">
+    <value>Taille du tampon en octets</value>
+  </data>
+  <data name="TimeoutDescription" xml:space="preserve">
+    <value>Délai d'expiration du socket en millisecondes</value>
+  </data>
+  <data name="VerboseDescription" xml:space="preserve">
+    <value>Activer la journalisation détaillée (Debug)</value>
+  </data>
+  <data name="QuietDescription" xml:space="preserve">
+    <value>Supprimer la sortie d'informations (niveau Avertissement uniquement)</value>
+  </data>
+  <data name="LogLevelDescription" xml:space="preserve">
+    <value>Remplacer le niveau de journalisation : Verbose, Debug, Information, Warning, Error, Fatal</value>
+  </data>
+</root>

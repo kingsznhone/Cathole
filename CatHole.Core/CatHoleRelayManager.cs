@@ -204,7 +204,10 @@ namespace CatHole.Core
         {
             if (Interlocked.Exchange(ref _disposed, 1) == 0)
             {
-                await ClearAsync().ConfigureAwait(false);
+                var stopTasks = _relays.Values.Select(relay => relay.StopAsync(CancellationToken.None)).ToList();
+                await Task.WhenAll(stopTasks).ConfigureAwait(false);
+                await Task.WhenAll(_relays.Values.Select(r => r.DisposeAsync().AsTask())).ConfigureAwait(false);
+                _relays.Clear();
             }
         }
     }

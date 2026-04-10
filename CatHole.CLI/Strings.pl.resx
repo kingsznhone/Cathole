@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <data name="RootDescription" xml:space="preserve">
+    <value>CatHole - Wysokowydajna usługa przekazywania TCP/UDP
+Użycie: cathole -l 0.0.0.0:8080 -t 192.168.1.100:80</value>
+  </data>
+  <data name="ListenDescription" xml:space="preserve">
+    <value>Punkt nasłuchu, np. 0.0.0.0:8080 lub [::]:8080</value>
+  </data>
+  <data name="TargetDescription" xml:space="preserve">
+    <value>Docelowy punkt końcowy do przekazywania ruchu, np. 192.168.1.100:80</value>
+  </data>
+  <data name="NameDescription" xml:space="preserve">
+    <value>Nazwa przekaźnika</value>
+  </data>
+  <data name="NoTcpDescription" xml:space="preserve">
+    <value>Wyłącz przekazywanie TCP (domyślnie włączone)</value>
+  </data>
+  <data name="NoUdpDescription" xml:space="preserve">
+    <value>Wyłącz przekazywanie UDP (domyślnie włączone)</value>
+  </data>
+  <data name="BufferSizeDescription" xml:space="preserve">
+    <value>Rozmiar bufora w bajtach</value>
+  </data>
+  <data name="TimeoutDescription" xml:space="preserve">
+    <value>Limit czasu gniazda w milisekundach</value>
+  </data>
+  <data name="VerboseDescription" xml:space="preserve">
+    <value>Włącz szczegółowe rejestrowanie (Debug)</value>
+  </data>
+  <data name="QuietDescription" xml:space="preserve">
+    <value>Pomiń informacyjne wyjście (tylko poziom ostrzeżenia)</value>
+  </data>
+  <data name="LogLevelDescription" xml:space="preserve">
+    <value>Zastąp poziom rejestrowania: Verbose, Debug, Information, Warning, Error, Fatal</value>
+  </data>
+</root>

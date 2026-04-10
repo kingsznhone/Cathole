@@ -1,10 +1,10 @@
 {
-    "profiles": {
-        "CatHole": {
-            "commandName": "Project"
-        },
-        "Container (Dockerfile)": {
-            "commandName": "Docker"
-        }
+  "profiles": {
+    "CatHole": {
+      "commandName": "Project"
+    },
+    "Container (Dockerfile)": {
+      "commandName": "Docker"
     }
+  }
 }
