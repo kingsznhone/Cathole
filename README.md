@@ -8,10 +8,11 @@
 
 **A modern, high-performance TCP/UDP port forwarding toolkit built with .NET 10**
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg)](https://dotnet.microsoft.com/)
-[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker&logoColor=white)](Dockerfile)
-[![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg)]()
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
+[![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg?style=flat-square)](https://dotnet.microsoft.com/)
+[![Docker Pulls](https://img.shields.io/docker/pulls/kingsznhone/catflap-relay.svg?style=flat-square&logo=docker&logoColor=white)](https://hub.docker.com/r/kingsznhone/catflap-relay)
+[![Docker Version](https://img.shields.io/docker/v/kingsznhone/catflap-relay?style=flat-square&sort=semver&logo=docker&logoColor=white&label=image)](https://hub.docker.com/r/kingsznhone/catflap-relay)
+[![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-blue.svg?style=flat-square)]()
 
 </div>
 
