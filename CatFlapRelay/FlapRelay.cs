@@ -117,11 +117,22 @@ namespace CatFlapRelay
                     if (_option.TCP)
                     {
                         _tcpListener = new TcpListener(_listenEndpoint.Address, _listenEndpoint.Port);
+                        if (_option.DualMode && _listenEndpoint.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6)
+                            _tcpListener.Server.DualMode = true;
                         _tcpListener.Start();
                     }
                     if (_option.UDP)
                     {
-                        _udpListener = new UdpClient(_listenEndpoint);
+                        if (_option.DualMode && _listenEndpoint.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6)
+                        {
+                            _udpListener = new UdpClient(_listenEndpoint.AddressFamily);
+                            _udpListener.Client.DualMode = true;
+                            _udpListener.Client.Bind(_listenEndpoint);
+                        }
+                        else
+                        {
+                            _udpListener = new UdpClient(_listenEndpoint);
+                        }
                     }
                 }
                 catch

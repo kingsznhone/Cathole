@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CatFlapRelay.Panel.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260410180055_Cat0")]
+    [Migration("20260410203335_Cat0")]
     partial class Cat0
     {
         /// <inheritdoc />
@@ -91,6 +91,9 @@ namespace CatFlapRelay.Panel.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<int>("BufferSize")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("DualMode")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("ListenHost")

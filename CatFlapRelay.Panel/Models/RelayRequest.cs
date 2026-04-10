@@ -39,4 +39,11 @@ public class RelayRequest
     /// <summary>UDP session idle timeout in seconds.</summary>
     [DefaultValue(60.0)]
     public double? UdpTunnelTimeout { get; init; } = 60.0;
+
+    /// <summary>
+    /// When true and the listen address is IPv6, enables dual-stack so the socket also accepts
+    /// IPv4 connections. Linux defaults to IPv6-only (RFC 3493); set this when using [::] on Linux.
+    /// </summary>
+    [DefaultValue(false)]
+    public bool DualMode { get; init; } = false;
 }

@@ -109,6 +109,7 @@ var relay = FlapRelayFactory.CreateBuilder(loggerFactory)
     .WithSocketTimeout(TimeSpan.FromMilliseconds(1000))
     .EnableTCP()
     .EnableUDP()   // or .TCPOnly() / .UDPOnly()
+    .EnableDualMode()  // optional: accept IPv4 on [::] socket (Linux only needs this)
     .Build();
 
 await relay.StartAsync();
@@ -163,6 +164,7 @@ catflaprelay-cli -l 0.0.0.0:5000 -t 10.0.0.1:5000 -v
 | `--no-udp` | `-U` | Disable UDP forwarding | `false` |
 | `--buffer-size` | `-b` | I/O buffer size in bytes | `131072` (128 KB) |
 | `--timeout` | | Socket timeout in milliseconds | `1000` |
+| `--dual-mode` | | Accept IPv4 connections on an IPv6 socket (`[::]`). Linux defaults to IPv6-only (RFC 3493); this flag mirrors Windows behaviour. | `false` |
 | `--verbose` | `-v` | Enable debug logging | `false` |
 | `--quiet` | `-q` | Suppress info logging | `false` |
 

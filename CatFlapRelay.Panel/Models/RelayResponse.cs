@@ -21,5 +21,6 @@ public record RelayResponse(
     double SocketTimeout,
     // <summary>UDP session idle timeout in seconds.</summary>
     double UdpTunnelTimeout,
+    bool DualMode,
     FlapRelayStatistics? Statistics
 );

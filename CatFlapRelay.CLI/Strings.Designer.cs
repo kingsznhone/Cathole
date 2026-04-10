@@ -10,8 +10,8 @@
 
 namespace CatFlapRelay.CLI {
     using System;
-    
-    
+
+
     /// <summary>
     ///   一个强类型的资源类，用于查找本地化的字符串等。
     /// </summary>
@@ -23,15 +23,15 @@ namespace CatFlapRelay.CLI {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     public class Strings {
-        
+
         private static global::System.Resources.ResourceManager resourceMan;
-        
+
         private static global::System.Globalization.CultureInfo resourceCulture;
-        
+
         [global::System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
         internal Strings() {
         }
-        
+
         /// <summary>
         ///   返回此类使用的缓存的 ResourceManager 实例。
         /// </summary>
@@ -45,7 +45,7 @@ namespace CatFlapRelay.CLI {
                 return resourceMan;
             }
         }
-        
+
         /// <summary>
         ///   重写当前线程的 CurrentUICulture 属性，对
         ///   使用此强类型资源类的所有资源查找执行重写。
@@ -59,7 +59,7 @@ namespace CatFlapRelay.CLI {
                 resourceCulture = value;
             }
         }
-        
+
         /// <summary>
         ///   查找类似 Buffer size in bytes 的本地化字符串。
         /// </summary>
@@ -68,7 +68,7 @@ namespace CatFlapRelay.CLI {
                 return ResourceManager.GetString("BufferSizeDescription", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   查找类似 Listen endpoint, e.g. 0.0.0.0:8080 or [::]:8080 的本地化字符串。
         /// </summary>
@@ -77,7 +77,7 @@ namespace CatFlapRelay.CLI {
                 return ResourceManager.GetString("ListenDescription", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   查找类似 Override log level: Verbose, Debug, Information, Warning, Error, Fatal 的本地化字符串。
         /// </summary>
@@ -86,7 +86,7 @@ namespace CatFlapRelay.CLI {
                 return ResourceManager.GetString("LogLevelDescription", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   查找类似 Relay name 的本地化字符串。
         /// </summary>
@@ -95,7 +95,7 @@ namespace CatFlapRelay.CLI {
                 return ResourceManager.GetString("NameDescription", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   查找类似 Disable TCP forwarding (enabled by default) 的本地化字符串。
         /// </summary>
@@ -104,7 +104,7 @@ namespace CatFlapRelay.CLI {
                 return ResourceManager.GetString("NoTcpDescription", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   查找类似 Disable UDP forwarding (enabled by default) 的本地化字符串。
         /// </summary>
@@ -113,7 +113,7 @@ namespace CatFlapRelay.CLI {
                 return ResourceManager.GetString("NoUdpDescription", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   查找类似 Suppress informational output (Warning level only) 的本地化字符串。
         /// </summary>
@@ -122,7 +122,7 @@ namespace CatFlapRelay.CLI {
                 return ResourceManager.GetString("QuietDescription", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   查找类似 CatFlap - High-performance TCP/UDP relay service
         ///Usage: catflap -l 0.0.0.0:8080 -t 192.168.1.100:80 的本地化字符串。
@@ -132,7 +132,7 @@ namespace CatFlapRelay.CLI {
                 return ResourceManager.GetString("RootDescription", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   查找类似 Target endpoint to forward traffic to, e.g. 192.168.1.100:80 的本地化字符串。
         /// </summary>
@@ -141,7 +141,7 @@ namespace CatFlapRelay.CLI {
                 return ResourceManager.GetString("TargetDescription", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   查找类似 Socket timeout in milliseconds 的本地化字符串。
         /// </summary>
@@ -150,7 +150,16 @@ namespace CatFlapRelay.CLI {
                 return ResourceManager.GetString("TimeoutDescription", resourceCulture);
             }
         }
-        
+
+        /// <summary>
+        ///   查找类似 Enable dual-stack mode 的本地化字符串。
+        /// </summary>
+        public static string DualModeDescription {
+            get {
+                return ResourceManager.GetString("DualModeDescription", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   查找类似 Enable verbose (Debug) logging 的本地化字符串。
         /// </summary>

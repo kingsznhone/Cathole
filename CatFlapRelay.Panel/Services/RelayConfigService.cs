@@ -97,6 +97,7 @@ public sealed class RelayConfigService
         UDP = e.Udp,
         SocketTimeout =e.SocketTimeout,
         UdpTunnelTimeout =e.UdpTunnelTimeout,
+        DualMode = e.DualMode,
     };
 
     private static RelayEntry ToEntry(FlapRelayOption o) => new()
@@ -110,6 +111,7 @@ public sealed class RelayConfigService
         Udp = o.UDP,
         SocketTimeout = o.SocketTimeout,
         UdpTunnelTimeout = o.UdpTunnelTimeout,
+        DualMode = o.DualMode,
     };
 
     private static void UpdateEntry(RelayEntry entry, FlapRelayOption o)
@@ -122,5 +124,6 @@ public sealed class RelayConfigService
         entry.Udp = o.UDP;
         entry.SocketTimeout = o.SocketTimeout;
         entry.UdpTunnelTimeout = o.UdpTunnelTimeout;
+        entry.DualMode = o.DualMode;
     }
 }

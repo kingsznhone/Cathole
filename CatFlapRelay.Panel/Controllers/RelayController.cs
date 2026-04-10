@@ -235,6 +235,7 @@ public class RelayController : ControllerBase
         o.BufferSize,
         o.SocketTimeout.TotalSeconds,
         o.UdpTunnelTimeout.TotalSeconds,
+        o.DualMode,
         _relayService.GetStatistics(o.Id)
     );
 
@@ -249,5 +250,6 @@ public class RelayController : ControllerBase
         BufferSize = request.BufferSize,
         SocketTimeout = TimeSpan.FromSeconds(request.SocketTimeout ?? 1.0),
         UdpTunnelTimeout = TimeSpan.FromSeconds(request.UdpTunnelTimeout ?? 60.0),
+        DualMode = request.DualMode,
     };
 }

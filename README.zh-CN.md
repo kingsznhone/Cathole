@@ -109,6 +109,7 @@ var relay = FlapRelayFactory.CreateBuilder(loggerFactory)
     .WithSocketTimeout(TimeSpan.FromMilliseconds(1000))
     .EnableTCP()
     .EnableUDP()   // 或 .TCPOnly() / .UDPOnly()
+    .EnableDualMode()  // 可选：在 IPv6 套接字 [::] 上同时接受 IPv4 连接（仅 Linux 需要）
     .Build();
 
 await relay.StartAsync();
@@ -163,6 +164,7 @@ catflaprelay-cli -l 0.0.0.0:5000 -t 10.0.0.1:5000 -v
 | `--no-udp` | `-U` | 禁用 UDP 转发 | `false` |
 | `--buffer-size` | `-b` | I/O 缓冲区大小（字节） | `131072`（128 KB） |
 | `--timeout` | | Socket 超时（毫秒） | `1000` |
+| `--dual-mode` | | 在 IPv6 套接字（`[::]`）上同时接受 IPv4 连接。Linux 默认仅 IPv6（RFC 3493），此标志可还原为 Windows 行为。 | `false` |
 | `--verbose` | `-v` | 启用调试日志 | `false` |
 | `--quiet` | `-q` | 抑制 info 日志 | `false` |
 

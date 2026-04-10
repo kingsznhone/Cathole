@@ -90,6 +90,9 @@ namespace CatFlapRelay.Panel.Migrations
                     b.Property<int>("BufferSize")
                         .HasColumnType("INTEGER");
 
+                    b.Property<bool>("DualMode")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("ListenHost")
                         .IsRequired()
                         .HasColumnType("TEXT");

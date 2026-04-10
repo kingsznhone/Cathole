@@ -167,6 +167,17 @@ namespace CatFlapRelay
             return this;
         }
 
+        /// <summary>
+        /// Enables dual-stack mode so that an IPv6 listen address (e.g. [::]) also accepts
+        /// IPv4 connections. Linux defaults to IPv6-only (RFC 3493); call this method when
+        /// you need [::] to behave like Windows on Linux.
+        /// </summary>
+        public RelayBuilder EnableDualMode(bool enabled = true)
+        {
+            _option.DualMode = enabled;
+            return this;
+        }
+
         public FlapRelay Build()
         {
             if (_built)

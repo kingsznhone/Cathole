@@ -28,4 +28,5 @@ internal sealed class RelayEntry
     public bool Udp { get; set; } = true;
     public TimeSpan SocketTimeout { get; set; }
     public TimeSpan UdpTunnelTimeout { get; set; }
+    public bool DualMode { get; set; } = false;
 }

@@ -41,6 +41,9 @@
         <FormItem Label="UDP Tunnel Timeout">
             <AntDesign.InputNumber @bind-Value="@UdpTunnelTimeoutSeconds" Min="0" Formatter="@(value => value.ToString("F0") + " s")" Width="160px" />
         </FormItem>
+        <FormItem Label="Dual Mode">
+            <Switch @bind-Value="@context.DualMode" />
+        </FormItem>
     </Form>
 </Modal>
 @code {

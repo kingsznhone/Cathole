@@ -11,6 +11,10 @@
     <Extra>
         <Dropdown  Placement="Placement.Bottom" Arrow>
             <ChildContent>
+                @if (Relay.Option.DualMode)
+                {
+                    <Tag Color="TagColor.Blue">Dual Mode</Tag>
+                }
                 <Tag>...</Tag>
             </ChildContent>
             <Overlay>

@@ -142,6 +142,9 @@ Usage: catflap -l 0.0.0.0:8080 -t 192.168.1.100:80</value>
   <data name="TimeoutDescription" xml:space="preserve">
     <value>Socket timeout in milliseconds</value>
   </data>
+  <data name="DualModeDescription" xml:space="preserve">
+    <value>Enable dual-stack mode: when listening on an IPv6 address (e.g. [::]), also accept IPv4 connections. Linux defaults to IPv6-only; use this flag to match Windows behaviour.</value>
+  </data>
   <data name="VerboseDescription" xml:space="preserve">
     <value>Enable verbose (Debug) logging</value>
   </data>

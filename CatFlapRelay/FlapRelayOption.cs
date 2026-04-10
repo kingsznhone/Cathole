@@ -33,6 +33,14 @@ namespace CatFlapRelay
 
         public TimeSpan UdpTunnelTimeout { get; set; } = TimeSpan.FromSeconds(60);
 
+        /// <summary>
+        /// When true and the listen address is an IPv6 address, enables dual-stack mode so the
+        /// socket accepts both IPv4 and IPv6 connections (sets IPV6_V6ONLY = false).
+        /// Linux defaults to IPV6_V6ONLY = true (RFC 3493); set this explicitly when you want
+        /// [::] to also accept IPv4 traffic on Linux.
+        /// </summary>
+        public bool DualMode { get; set; } = false;
+
         public override string ToString() => JsonSerializer.Serialize(this, _jsonContext.FlapRelayOption);
     }
 }

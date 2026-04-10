@@ -62,7 +62,8 @@ namespace CatFlapRelay.Panel.Migrations
                     Tcp = table.Column<bool>(type: "INTEGER", nullable: false),
                     Udp = table.Column<bool>(type: "INTEGER", nullable: false),
                     SocketTimeout = table.Column<TimeSpan>(type: "TEXT", nullable: false),
-                    UdpTunnelTimeout = table.Column<TimeSpan>(type: "TEXT", nullable: false)
+                    UdpTunnelTimeout = table.Column<TimeSpan>(type: "TEXT", nullable: false),
+                    DualMode = table.Column<bool>(type: "INTEGER", nullable: false)
                 },
                 constraints: table =>
                 {

@@ -37,6 +37,9 @@
   <data name="TimeoutDescription" xml:space="preserve">
     <value>Socket 超时时间（毫秒）</value>
   </data>
+  <data name="DualModeDescription" xml:space="preserve">
+    <value>启用双栈模式：监听 IPv6 地址（如 [::]）时同时接受 IPv4 连接。Linux 默认仅 IPv6，使用此标志可与 Windows 行为保持一致。</value>
+  </data>
   <data name="VerboseDescription" xml:space="preserve">
     <value>启用详细 (Debug) 日志</value>
   </data>
