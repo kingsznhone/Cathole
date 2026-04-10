@@ -6,6 +6,7 @@
     <ApplicationIcon>CatFlapRelay.ico</ApplicationIcon>
     <!-- Unix-like systems use 'catflaprelay-cli'; Windows keeps the default assembly name -->
     <AssemblyName Condition="'$(RuntimeIdentifier)' != 'win-x64'">catflaprelay-cli</AssemblyName>
+    <RootNamespace>CatFlapRelay.CLI</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>

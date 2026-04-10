@@ -157,6 +157,31 @@ jobs:
           path: publish/panel-out/
           if-no-files-found: error
 
+  build-nuget:
+    name: NuGet Package
+    needs: get-version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10'
+
+      - name: Pack
+        run: >
+          dotnet pack CatFlapRelay/CatFlapRelay.csproj
+          -c Release
+          -o publish/nupkg
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: catflaprelay-nuget-${{ needs.get-version.outputs.version }}
+          path: publish/nupkg/*.nupkg
+          if-no-files-found: error
+
   verify-builds:
     name: Verify All Builds Passed
     if: github.event_name == 'workflow_dispatch'
@@ -164,6 +189,7 @@ jobs:
       - get-version
       - build-cli
       - build-panel
+      - build-nuget
     runs-on: ubuntu-latest
     steps:
       - name: All builds succeeded
@@ -178,6 +204,7 @@ jobs:
       - get-version
       - build-cli
       - build-panel
+      - build-nuget
     runs-on: ubuntu-latest
     steps:
       - name: Download all artifacts
@@ -191,7 +218,9 @@ jobs:
           mkdir -p packaged
           for dir in release-assets/*/; do
             name=$(basename "$dir")
-            if [[ "$name" == *win-x64* ]]; then
+            if [[ "$name" == *nuget* ]]; then
+              cp "$dir"*.nupkg packaged/
+            elif [[ "$name" == *win-x64* ]]; then
               (cd "$dir" && zip -r "${GITHUB_WORKSPACE}/packaged/${name}.zip" .)
             else
               tar -czf "packaged/${name}.tar.gz" -C "$dir" .
