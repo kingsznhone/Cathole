@@ -16,7 +16,6 @@
   <!-- Shared NuGet / package metadata (used by CatFlap.Core when packed) -->
   <PropertyGroup>
     <Authors>kingsznhone</Authors>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/kingsznhone/CatFlap</PackageProjectUrl>
     <RepositoryUrl>https://github.com/kingsznhone/CatFlap</RepositoryUrl>
     <RepositoryType>git</RepositoryType>

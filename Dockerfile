@@ -14,6 +14,7 @@ COPY CatFlapRelay.Panel/ CatFlapRelay.Panel/
 RUN dotnet publish CatFlapRelay.Panel/CatFlapRelay.Panel.csproj \
     -c Release \
     --no-self-contained \
+    -p:GeneratePackageOnBuild=false \
     -o /app/publish
 
 # Runtime stage

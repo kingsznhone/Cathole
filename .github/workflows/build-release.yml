@@ -100,6 +100,7 @@ jobs:
           --no-self-contained
           -p:PublishSingleFile=true
           -p:PublishReadyToRun=true
+          -p:GeneratePackageOnBuild=false
           -o publish/out
 
       - name: Publish (AOT)
@@ -110,6 +111,7 @@ jobs:
           -r ${{ matrix.rid }}
           -p:PublishAot=true
           -p:PublishTrimmed=true
+          -p:GeneratePackageOnBuild=false
           -o publish/out
 
       - name: Upload artifact
@@ -147,6 +149,7 @@ jobs:
           -r ${{ matrix.rid }}
           -p:PublishSingleFile=true
           -p:PublishReadyToRun=true
+          -p:GeneratePackageOnBuild=false
           --no-self-contained
           -o publish/panel-out
 
@@ -183,7 +186,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: catflaprelay-nuget-${{ needs.get-version.outputs.version }}
-          path: publish/nupkg/*.nupkg
+          path: publish/nupkg/
           if-no-files-found: error
 
   verify-builds:
