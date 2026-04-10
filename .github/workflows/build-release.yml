@@ -169,10 +169,14 @@ jobs:
         with:
           dotnet-version: '10'
 
+      - name: Build
+        run: dotnet build CatFlapRelay/CatFlapRelay.csproj -c Release
+
       - name: Pack
         run: >
           dotnet pack CatFlapRelay/CatFlapRelay.csproj
           -c Release
+          --no-build
           -o publish/nupkg
 
       - name: Upload artifact
