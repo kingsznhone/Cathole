@@ -89,7 +89,7 @@ docker run -d \
   -v catflap-data:/app/data \
   -e Admin__UserName=admin \
   -e Admin__Password=YourSecurePassword \
-  ghcr.io/kingsznhone/catflap:latest
+  kingsznhone/catflap-relay:latest
 ```
 
 > If `Admin__Password` is not set, a random 16-character password will be generated and printed to the container logs.
@@ -103,7 +103,7 @@ docker run -d \
 ```yaml
 services:
   catflap:
-    image: ghcr.io/kingsznhone/catflap-relay:latest
+    image: kingsznhone/catflap-relay:latest
     container_name: catflap-panel
     restart: unless-stopped
     ports:
@@ -135,13 +135,13 @@ docker run --rm \
   -v catflap-data:/app/data \
   -e CATFLAP_RESET_ADMIN=true \
   -e Admin__Password=MyNewPassword \
-  ghcr.io/kingsznhone/catflap-relay:latest
+  kingsznhone/catflap-relay:latest
 
 # Reset with an auto-generated password (check container logs)
 docker run --rm \
   -v catflap-data:/app/data \
   -e CATFLAP_RESET_ADMIN=true \
-  ghcr.io/kingsznhone/catflap-relay:latest
+  kingsznhone/catflap-relay:latest
 ```
 
 > Remove `CATFLAP_RESET_ADMIN` from your normal deployment to prevent resetting on every restart.
@@ -156,6 +156,12 @@ Configurable via `appsettings.json` or environment variables (`PanelSettings__*`
 | `PanelSettings:MaxNameLength` | Max relay name length | `128` |
 | `PanelSettings:MaxEndpointLength` | Max host:port string length | `64` |
 | `PanelSettings:MaxBufferSize` | Max I/O buffer size (bytes) | `67108864` (64 MB) |
+
+### REST API Examples
+
+```bash
+# Obtain a JWT token
+TOKEN=$(curl -s -X POST http://localhost:8080/api/v1/auth/token \
   -H "Content-Type: application/json" \
   -d '{"username":"admin","password":"YourSecurePassword"}' | jq -r '.token')
 
@@ -170,6 +176,7 @@ curl -H "Authorization: Bearer $TOKEN" http://localhost:8080/api/v1/relay
 
 # Start all relays
 curl -X POST -H "Authorization: Bearer $TOKEN" http://localhost:8080/api/v1/relay/start-all
+```
 
 
 
