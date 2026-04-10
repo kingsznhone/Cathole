@@ -258,7 +258,7 @@ docker run --rm \
 # 获取 JWT Token
 TOKEN=$(curl -s -X POST http://localhost:8080/api/v1/auth/token \
   -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"YourSecurePassword"}' | jq -r '.token')
+  -d '{"username":"admin","password":"YourSecurePassword","expiryDays":30}' | jq -r '.token')
 
 # 创建转发规则
 curl -X POST http://localhost:8080/api/v1/relay \

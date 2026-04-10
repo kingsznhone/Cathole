@@ -258,7 +258,7 @@ Configurable via `appsettings.json` or environment variables (`PanelSettings__*`
 # Obtain a JWT token
 TOKEN=$(curl -s -X POST http://localhost:8080/api/v1/auth/token \
   -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"YourSecurePassword"}' | jq -r '.token')
+  -d '{"username":"admin","password":"YourSecurePassword","expiryDays":30}' | jq -r '.token')
 
 # Create a relay
 curl -X POST http://localhost:8080/api/v1/relay \
