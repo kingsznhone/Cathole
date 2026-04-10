@@ -3,8 +3,7 @@
   <PropertyGroup>
     <Version>1.0.0</Version>
     <ApplicationIcon>CatFlapRelay.ico</ApplicationIcon>
-    <!-- Unix-like systems use 'catflaprelay-panel'; Windows keeps the default assembly name -->
-    <AssemblyName Condition="'$(OS)' != 'Windows_NT'">catflaprelay-panel</AssemblyName>
+    <AssemblyName Condition="'$(RuntimeIdentifier)' != 'win-x64'">catflaprelay-panel</AssemblyName>
     <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn>
