@@ -186,11 +186,22 @@ jobs:
           path: release-assets
           merge-multiple: false
 
-      - name: Verify release assets
-        run: find release-assets -type f | sort
+      - name: Package artifacts
+        run: |
+          mkdir -p packaged
+          for dir in release-assets/*/; do
+            name=$(basename "$dir")
+            if [[ "$name" == *win-x64* ]]; then
+              zip -r "packaged/${name}.zip" "$dir" --junk-paths
+            else
+              tar -czf "packaged/${name}.tar.gz" -C "$dir" .
+            fi
+          done
+          echo "--- Packaged files ---"
+          ls -lh packaged/
 
       - name: Upload release assets
         uses: softprops/action-gh-release@v2
         with:
-          files: release-assets/**/*
+          files: packaged/*
           token: ${{ secrets.GITHUB_TOKEN }}
