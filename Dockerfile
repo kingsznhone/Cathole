@@ -31,4 +31,4 @@ ENV ASPNETCORE_ENVIRONMENT=Production
 
 EXPOSE 8080
 
-ENTRYPOINT ["dotnet", "CatFlapRelay.Panel.dll"]
+ENTRYPOINT ["dotnet", "catflaprelay-panel.dll"]
