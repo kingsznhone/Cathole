@@ -530,7 +530,7 @@ namespace CatHole.Core
 
         private class UdpTunnelInfo
         {
-            public UdpClient Client { get; init; }
+            public required UdpClient Client { get; init; }
             public DateTime LastActivity { get; set; }
         }
     }

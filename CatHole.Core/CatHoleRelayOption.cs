@@ -2,12 +2,18 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace CatHole.Core
 {
+    [JsonSerializable(typeof(CatHoleRelayOption))]
+    internal partial class CatHoleRelayOptionContext : JsonSerializerContext { }
+
     public class CatHoleRelayOption
     {
-        private static readonly JsonSerializerOptions _jsonOptions = new() { WriteIndented = true };
+        private static readonly CatHoleRelayOptionContext _jsonContext =
+            new(new JsonSerializerOptions { WriteIndented = true });
+
 
         public Guid Id { get; init; } = Guid.NewGuid();
 
@@ -27,6 +33,6 @@ namespace CatHole.Core
 
         public TimeSpan UdpTunnelTimeout { get; set; } = TimeSpan.FromSeconds(60);
 
-        public override string ToString() => JsonSerializer.Serialize(this, _jsonOptions);
+        public override string ToString() => JsonSerializer.Serialize(this, _jsonContext.CatHoleRelayOption);
     }
 }

@@ -74,8 +74,8 @@ internal static class Program
                 parseResult.GetValue(logLevelOpt));
 
             return await RunRelayAsync(
-                listen: parseResult.GetValue(listenOption),
-                target: parseResult.GetValue(targetOption),
+                listen: parseResult.GetValue(listenOption)!,
+                target: parseResult.GetValue(targetOption)!,
                 name: parseResult.GetValue(nameOption)!,
                 tcp: !parseResult.GetValue(noTcpOption),
                 udp: !parseResult.GetValue(noUdpOption),
