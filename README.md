@@ -10,6 +10,8 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg?style=flat-square)](https://dotnet.microsoft.com/)
+[![NuGet Version](https://img.shields.io/nuget/v/CatFlapRelay.svg?style=flat-square&logo=nuget&logoColor=white)](https://www.nuget.org/packages/CatFlapRelay/)
+[![NuGet Downloads](https://img.shields.io/nuget/dt/CatFlapRelay.svg?style=flat-square&logo=nuget&logoColor=white)](https://www.nuget.org/packages/CatFlapRelay/)
 [![Docker Pulls](https://img.shields.io/docker/pulls/kingsznhone/catflap-relay.svg?style=flat-square&logo=docker&logoColor=white)](https://hub.docker.com/r/kingsznhone/catflap-relay)
 [![Docker Version](https://img.shields.io/docker/v/kingsznhone/catflap-relay?style=flat-square&sort=semver&logo=docker&logoColor=white&label=image)](https://hub.docker.com/r/kingsznhone/catflap-relay)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-blue.svg?style=flat-square)]()
@@ -24,6 +26,97 @@ Cat Flap Relay is a dual-stack (IPv4 & IPv6) port relay toolkit. It ships as two
 |-----------|----------|
 | **CatFlapRelay.CLI** | Lightweight command-line tool — spin up a TCP/UDP relay in seconds |
 | **CatFlapRelay.Panel** | Full-featured management panel (Blazor + REST API) — manage multiple relays via browser or API, runs in Docker |
+
+---
+
+## NuGet Library
+
+The core relay engine is available as a standalone NuGet package for embedding into your own .NET applications.
+
+```bash
+dotnet add package CatFlapRelay
+```
+
+Or via the Package Manager Console:
+
+```powershell
+Install-Package CatFlapRelay
+```
+
+### Usage
+
+#### Step 1 — Choose a logger
+
+Both APIs accept any `ILoggerFactory`. Pick whichever suits your project:
+
+```csharp
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+
+// No logging (silent) — zero dependencies
+ILoggerFactory loggerFactory = NullLoggerFactory.Instance;
+
+// Built-in console logger — no extra packages needed
+ILoggerFactory loggerFactory = LoggerFactory.Create(b => b.AddConsole());
+
+// Serilog — install Serilog.Extensions.Logging + a sink of your choice
+var serilog = new LoggerConfiguration()
+    .MinimumLevel.Information()
+    .WriteTo.Console()
+    .CreateLogger();
+ILoggerFactory loggerFactory = LoggerFactory.Create(b => b.AddSerilog(serilog));
+
+// ASP.NET Core / Generic Host — resolve from DI
+// ILoggerFactory loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
+```
+
+#### Step 2A — Direct instantiation via `FlapRelayOption`
+
+```csharp
+using CatFlapRelay;
+
+var factory = new FlapRelayFactory(loggerFactory);
+
+var relay = factory.CreateRelay(new FlapRelayOption
+{
+    Name       = "MyRelay",
+    ListenHost = "0.0.0.0:8080",
+    TargetHost = "192.168.1.100:3389",
+    TCP        = true,
+    UDP        = true,
+    BufferSize = 131072,
+});
+
+await relay.StartAsync();
+
+// ...
+
+await relay.StopAsync();
+```
+
+#### Step 2B — Fluent builder via `RelayBuilder`
+
+```csharp
+using CatFlapRelay;
+
+var relay = FlapRelayFactory.CreateBuilder(loggerFactory)
+    .WithName("MyRelay")
+    .ListenOn("0.0.0.0:8080")
+    .ForwardTo("192.168.1.100:3389")
+    .WithBufferSize(131072)
+    .WithSocketTimeout(TimeSpan.FromMilliseconds(1000))
+    .EnableTCP()
+    .EnableUDP()   // or .TCPOnly() / .UDPOnly()
+    .Build();
+
+await relay.StartAsync();
+
+// ...
+
+await relay.StopAsync();
+```
+
+> **Package page:** https://www.nuget.org/packages/CatFlapRelay/1.0.0
 
 ---
 
