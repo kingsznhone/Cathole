@@ -40,6 +40,7 @@ namespace CatFlap.Panel
                 var builder = WebApplication.CreateBuilder(args);
 
                 EnsureDataDirectories(builder);
+                ConfigureKestrel(builder);
                 ConfigureSerilog(builder);
                 ConfigureBlazorAndUiServices(builder);
                 ConfigureServices(builder);
@@ -49,6 +50,7 @@ namespace CatFlap.Panel
                 ConfigureControllers(builder);
                 ConfigureOpenApi(builder.Services);
                 ConfigureHealthChecks(builder.Services);
+                ConfigureCors(builder);
 
                 var app = builder.Build();
 
@@ -114,6 +116,24 @@ namespace CatFlap.Panel
                     return conn;
                 });
             }
+        }
+
+        /// <summary>
+        /// Configures Kestrel server options. Endpoint binding is intentionally left to
+        /// environment variables (ASPNETCORE_HTTP_PORTS / ASPNETCORE_URLS) so that the
+        /// same image runs on any port without rebuilding.
+        /// </summary>
+        private static void ConfigureKestrel(WebApplicationBuilder builder)
+        {
+            builder.WebHost.ConfigureKestrel((context, options) =>
+            {
+                // Don't advertise the server version in the "Server" response header.
+                options.AddServerHeader = false;
+
+                // Apply limit overrides from configuration (Kestrel:Limits section).
+                // Values can be overridden per-environment without touching code.
+                options.Configure(context.Configuration.GetSection("Kestrel"));
+            });
         }
 
         /// <summary>
@@ -188,6 +208,11 @@ namespace CatFlap.Panel
                 Log.Warning("JwtSettings:Key not configured — using an ephemeral in-memory key. All tokens will be invalidated on restart. Set JwtSettings:Key in appsettings.json to persist tokens across restarts.");
             }
 
+            // Write the resolved key (configured or ephemeral) back so that
+            // IOptions<JwtSettings> / IOptionsSnapshot<JwtSettings> sees the same
+            // value that the JWT Bearer handler uses.
+            builder.Configuration[$"{JwtSettings.SectionName}:Key"] = keyHex;
+
             builder.Services
                 .AddAuthentication(options =>
                 {
@@ -207,7 +232,30 @@ namespace CatFlap.Panel
                         ClockSkew = TimeSpan.Zero
                     };
                 })
-                .AddIdentityCookies();
+                .AddIdentityCookies(cookies =>
+                {
+                    // For API routes the cookie scheme must not redirect to the login page —
+                    // callers expect a 401/403 status code, not a 302 that resolves to Blazor HTML.
+                    cookies.ApplicationCookie?.Configure(o =>
+                    {
+                        o.Events.OnRedirectToLogin = ctx =>
+                        {
+                            if (ctx.Request.Path.StartsWithSegments("/api"))
+                                ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                            else
+                                ctx.Response.Redirect(ctx.RedirectUri);
+                            return Task.CompletedTask;
+                        };
+                        o.Events.OnRedirectToAccessDenied = ctx =>
+                        {
+                            if (ctx.Request.Path.StartsWithSegments("/api"))
+                                ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+                            else
+                                ctx.Response.Redirect(ctx.RedirectUri);
+                            return Task.CompletedTask;
+                        };
+                    });
+                });
         }
 
         /// <summary>
@@ -285,6 +333,33 @@ namespace CatFlap.Panel
         }
 
         /// <summary>
+        /// Configures CORS for the API controllers.
+        /// AllowCredentials is intentionally omitted: the API uses JWT bearer tokens
+        /// (explicit Authorization header), not cookies, so credentials CORS is not needed
+        /// and would create a cross-site request vulnerability with the Identity cookie.
+        /// Allowed origins can be restricted via Cors:AllowedOrigins in configuration.
+        /// </summary>
+        private static void ConfigureCors(WebApplicationBuilder builder)
+        {
+            var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>();
+
+            builder.Services.AddCors(options =>
+            {
+                options.AddDefaultPolicy(policy =>
+                {
+                    if (allowedOrigins is { Length: > 0 })
+                        policy.WithOrigins(allowedOrigins);
+                    else
+                        policy.AllowAnyOrigin();
+
+                    policy.AllowAnyMethod()
+                          .AllowAnyHeader()
+                          .SetPreflightMaxAge(TimeSpan.FromHours(2));
+                });
+            });
+        }
+
+        /// <summary>
         /// Configures the HTTP request pipeline, middleware, and endpoint mappings.
         /// </summary>
         private static void ConfigureMiddleware(WebApplication app)
@@ -358,7 +433,12 @@ namespace CatFlap.Panel
                 options.RoutePrefix = "swagger";
             });
 
-            app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
+            // Only apply the Blazor error page re-execution for non-API routes.
+            // API routes must return their own status codes as-is (JSON, not HTML).
+            app.UseWhen(
+                ctx => !ctx.Request.Path.StartsWithSegments("/api"),
+                branch => branch.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true));
+            app.UseCors();
             app.UseAuthentication();
             app.UseAuthorization();
             app.UseAntiforgery();

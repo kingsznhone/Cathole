@@ -7,12 +7,17 @@
     <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn>
+    <ApplicationIcon>catflap.ico</ApplicationIcon>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <DebugType>none</DebugType>
     <DebugSymbols>false</DebugSymbols>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="catflap.ico" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\CatFlap.Core\CatFlap.Core.csproj" />

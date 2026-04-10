@@ -5,6 +5,7 @@ using Asp.Versioning;
 using CatFlap.Core;
 using CatFlap.Panel.Models;
 using CatFlap.Panel.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -16,7 +17,7 @@ namespace CatFlap.Panel.Controllers;
 [ApiVersion("1.0")]
 [ApiController]
 [Route("api/v{version:apiVersion}/[controller]")]
-[Authorize]
+[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 [Tags("Relay")]
 [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
 public class RelayController : ControllerBase
