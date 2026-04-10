@@ -1,0 +1,14 @@
+@using CatFlap.Panel
+@using CatFlap.Panel.Components
+@using CatFlap.Panel.Components.Account.Shared
+@using CatFlap.Panel.Components.Layout
+<Router AppAssembly="typeof(Program).Assembly" NotFoundPage="typeof(Pages.NotFound)">
+    <Found Context="routeData">
+        <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
+            <NotAuthorized>
+                <RedirectToLogin />
+            </NotAuthorized>
+        </AuthorizeRouteView>
+        <FocusOnNavigate RouteData="routeData" Selector="h1" />
+    </Found>
+</Router>

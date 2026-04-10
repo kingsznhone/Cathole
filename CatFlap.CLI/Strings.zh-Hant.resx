@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="RootDescription" xml:space="preserve">
+    <value>CatFlap - 高效能 TCP/UDP 中繼服務
+用法: catflap -l 0.0.0.0:8080 -t 192.168.1.100:80</value>
+  </data>
+  <data name="ListenDescription" xml:space="preserve">
+    <value>監聽端點，例如 0.0.0.0:8080 或 [::]:8080</value>
+  </data>
+  <data name="TargetDescription" xml:space="preserve">
+    <value>流量轉發目標端點，例如 192.168.1.100:80</value>
+  </data>
+  <data name="NameDescription" xml:space="preserve">
+    <value>中繼名稱</value>
+  </data>
+  <data name="NoTcpDescription" xml:space="preserve">
+    <value>停用 TCP 轉發（預設啟用）</value>
+  </data>
+  <data name="NoUdpDescription" xml:space="preserve">
+    <value>停用 UDP 轉發（預設啟用）</value>
+  </data>
+  <data name="BufferSizeDescription" xml:space="preserve">
+    <value>緩衝區大小（位元組）</value>
+  </data>
+  <data name="TimeoutDescription" xml:space="preserve">
+    <value>Socket 逾時時間（毫秒）</value>
+  </data>
+  <data name="VerboseDescription" xml:space="preserve">
+    <value>啟用詳細 (Debug) 日誌</value>
+  </data>
+  <data name="QuietDescription" xml:space="preserve">
+    <value>僅輸出警告級別日誌</value>
+  </data>
+  <data name="LogLevelDescription" xml:space="preserve">
+    <value>覆蓋日誌級別：Verbose、Debug、Information、Warning、Error、Fatal</value>
+  </data>
+</root>

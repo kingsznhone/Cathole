@@ -1,0 +1,97 @@
+@using CatFlap.Core
+@using CatFlap.Panel
+@using CatFlap.Panel.Components
+@using CatFlap.Panel.Components.Layout
+@using CatFlap.Panel.Services
+@inject RelayService RelayService
+@inject NotificationService _notice
+<Modal Visible="@_visible"
+       OnOk="HandleImportOk"
+       OnCancel="HandleImportCancel"
+       Style="width:480px">
+
+    <Form Layout="FormLayout.Horizontal"
+          Model="@Option"
+          OnFinish="@(() => { })"
+          OnFinishFailed="@(() => { })"
+          LabelColSpan="10"
+          WrapperColSpan="16">
+
+        <FormItem Label="Name">
+            <Input @bind-Value="@context.Name" Width="160" />
+        </FormItem>
+        <FormItem Label="ListenHost">
+            <Input @bind-Value="@context.ListenHost" Placeholder="127.0.0.1:54321" Width="160" />
+        </FormItem>
+        <FormItem Label="TargetHost">
+            <Input @bind-Value="@context.TargetHost" Placeholder="127.0.0.1:12345" Width="160" />
+        </FormItem>
+        <FormItem Label="TCP">
+            <Switch @bind-Value="@context.TCP" />
+        </FormItem>
+        <FormItem Label="UDP">
+            <Switch @bind-Value="@context.UDP" />
+        </FormItem>
+        <FormItem Label="BufferSize">
+            <AntDesign.InputNumber @bind-Value="@context.BufferSize" Min="1024" Step="1024"  Width="160px" />
+        </FormItem>
+        <FormItem Label="Socket Timeout">
+            <AntDesign.InputNumber @bind-Value="@SocketTimeoutSeconds" Min="0" Formatter="@(value => value.ToString("F1") + " s")" Width="160px"/>
+        </FormItem>
+        <FormItem Label="UDP Tunnel Timeout">
+            <AntDesign.InputNumber @bind-Value="@UdpTunnelTimeoutSeconds" Min="0" Formatter="@(value => value.ToString("F0") + " s")" Width="160px" />
+        </FormItem>
+    </Form>
+</Modal>
+@code {
+    [Parameter]
+    public CatFlapRelayOption Option { get; set; } = new();
+
+    [Parameter]
+    public bool IsEdit { get; set; }
+
+    private bool _visible { get; set; } = false;
+
+    private double SocketTimeoutSeconds
+    {
+        get => Option.SocketTimeout.TotalSeconds;
+        set => Option.SocketTimeout = TimeSpan.FromSeconds(value);
+    }
+
+    private double UdpTunnelTimeoutSeconds
+    {
+        get => Option.UdpTunnelTimeout.TotalSeconds;
+        set => Option.UdpTunnelTimeout = TimeSpan.FromSeconds(value);
+    }
+
+    public void Show()
+    {
+        _visible = true;
+    }
+
+    private async Task HandleImportOk()
+    {
+        _visible = false;
+        try
+        {
+            if (IsEdit)
+                await RelayService.UpdateRelayAsync(Option.Id, Option);
+            else
+                await RelayService.AddRelayAsync(Option);
+        }
+        catch (Exception ex)
+        {
+            _ = _notice.Warning(new NotificationConfig()
+            {
+                Message = IsEdit ? "Edit relay failed" : "Create new relay failed",
+                Description = ex.Message
+            });
+        }
+    }
+
+    private void HandleImportCancel(MouseEventArgs e)
+    {
+        _visible = false;
+    }
+
+}

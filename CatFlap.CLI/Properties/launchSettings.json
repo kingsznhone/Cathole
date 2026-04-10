@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "CatFlap": {
+      "commandName": "Project"
+    },
+    "Container (Dockerfile)": {
+      "commandName": "Docker"
+    }
+  }
+}

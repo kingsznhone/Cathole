@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="RootDescription" xml:space="preserve">
+    <value>CatFlap - 고성능 TCP/UDP 릴레이 서비스
+사용법: catflap -l 0.0.0.0:8080 -t 192.168.1.100:80</value>
+  </data>
+  <data name="ListenDescription" xml:space="preserve">
+    <value>수신 엔드포인트, 예: 0.0.0.0:8080 또는 [::]:8080</value>
+  </data>
+  <data name="TargetDescription" xml:space="preserve">
+    <value>트래픽을 전달할 대상 엔드포인트, 예: 192.168.1.100:80</value>
+  </data>
+  <data name="NameDescription" xml:space="preserve">
+    <value>릴레이 이름</value>
+  </data>
+  <data name="NoTcpDescription" xml:space="preserve">
+    <value>TCP 전달 비활성화 (기본적으로 활성화됨)</value>
+  </data>
+  <data name="NoUdpDescription" xml:space="preserve">
+    <value>UDP 전달 비활성화 (기본적으로 활성화됨)</value>
+  </data>
+  <data name="BufferSizeDescription" xml:space="preserve">
+    <value>버퍼 크기 (바이트)</value>
+  </data>
+  <data name="TimeoutDescription" xml:space="preserve">
+    <value>소켓 타임아웃 (밀리초)</value>
+  </data>
+  <data name="VerboseDescription" xml:space="preserve">
+    <value>자세한 (디버그) 로깅 활성화</value>
+  </data>
+  <data name="QuietDescription" xml:space="preserve">
+    <value>정보 출력 억제 (경고 수준만)</value>
+  </data>
+  <data name="LogLevelDescription" xml:space="preserve">
+    <value>로그 수준 재정의: Verbose, Debug, Information, Warning, Error, Fatal</value>
+  </data>
+</root>

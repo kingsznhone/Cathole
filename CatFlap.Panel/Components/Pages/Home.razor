@@ -1,0 +1,83 @@
+@page "/"
+@inject RelayService RelayService
+@using System.Security.Cryptography
+@using CatFlap.Core
+@using CatFlap.Panel
+@using CatFlap.Panel.Components
+@using CatFlap.Panel.Components.Controls
+@using CatFlap.Panel.Components.Layout
+@using CatFlap.Panel.Services
+@using Microsoft.AspNetCore.Authorization
+@implements IDisposable
+@* @attribute [Authorize] *@
+@rendermode InteractiveServer
+<PageTitle>Home</PageTitle>
+
+
+<Flex Gap="FlexGap.Middle" Direction="FlexDirection.Horizontal" Wrap="FlexWrap.Wrap">
+    <Button OnClick="CreateRelayHandler">New</Button>
+    <Button OnClick="OpenConfigHandler">Config</Button>
+    <Button OnClick="StartAllHandler">Start All</Button>
+    <Button OnClick="StopAllHandler">Stop All</Button>
+    <Button Danger OnClick="ClearAllHandler">Clear All</Button>
+</Flex>
+
+<Divider />
+<Flex Gap="FlexGap.Middle" Direction="FlexDirection.Horizontal" Wrap="FlexWrap.Wrap">
+    @foreach (var relay in RelayService.GetAllRelays())
+    {
+        <RelayCard Relay=relay></RelayCard>
+    }
+</Flex>
+
+<RelayOptionModal @ref="_createModalRef" Option="_catFlapRelayOption" IsEdit="false" />
+<ConfigModal @ref="_configModalRef" />
+
+@code {
+    private RelayOptionModal? _createModalRef;
+    private ConfigModal? _configModalRef;
+    private CatFlapRelayOption _catFlapRelayOption = new();
+
+    protected override void OnInitialized()
+    {
+        RelayService.RelaysChanged += HandleRelaysChanged;
+    }
+
+    private void HandleRelaysChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        RelayService.RelaysChanged -= HandleRelaysChanged;
+    }
+
+    public void CreateRelayHandler()
+    {
+        _catFlapRelayOption = new CatFlapRelayOption
+        {
+            Name = $"Relay_{RandomNumberGenerator.GetString("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", 4)}"
+        };
+        _createModalRef?.Show();
+    }
+
+    public async Task OpenConfigHandler()
+    {
+       await (_configModalRef?.Show() ?? Task.CompletedTask);
+    }
+
+    public void StartAllHandler()
+    {
+        RelayService.StartAll();
+    }
+
+    public async Task StopAllHandler()
+    {
+        await RelayService.StopAllAsync();
+    }
+
+    public async Task ClearAllHandler()
+    {
+        await RelayService.ClearAllAsync();
+    }
+
+}
+
