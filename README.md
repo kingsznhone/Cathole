@@ -3,7 +3,7 @@
 # 🐱 Cat Flap Relay
 
 <div align="center">
-  <img src="./README/catflaprelay.png" width="128" />
+  <img src="./README/CatFlapRelay.png" width="128" />
 </div>
 
 **A modern, high-performance TCP/UDP port forwarding toolkit built with .NET 10**
