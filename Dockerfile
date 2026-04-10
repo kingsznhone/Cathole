@@ -2,15 +2,15 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-COPY CatFlap.Core/CatFlap.Core.csproj CatFlap.Core/
-COPY CatFlap.Panel/CatFlap.Panel.csproj CatFlap.Panel/
+COPY CatFlapRelay/CatFlapRelay.csproj CatFlapRelay/
+COPY CatFlapRelay.Panel/CatFlapRelay.Panel.csproj CatFlapRelay.Panel/
 
-RUN dotnet restore CatFlap.Panel/CatFlap.Panel.csproj
+RUN dotnet restore CatFlapRelay.Panel/CatFlapRelay.Panel.csproj
 
-COPY CatFlap.Core/ CatFlap.Core/
-COPY CatFlap.Panel/ CatFlap.Panel/
+COPY CatFlapRelay/ CatFlapRelay/
+COPY CatFlapRelay.Panel/ CatFlapRelay.Panel/
 
-RUN dotnet publish CatFlap.Panel/CatFlap.Panel.csproj \
+RUN dotnet publish CatFlapRelay.Panel/CatFlapRelay.Panel.csproj \
     -c Release \
     --no-self-contained \
     -o /app/publish
@@ -30,4 +30,4 @@ ENV ASPNETCORE_ENVIRONMENT=Production
 
 EXPOSE 8080
 
-ENTRYPOINT ["dotnet", "CatFlap.Panel.dll"]
+ENTRYPOINT ["dotnet", "CatFlapRelay.Panel.dll"]
