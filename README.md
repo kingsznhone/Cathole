@@ -86,12 +86,15 @@ The Panel provides a web-based dashboard with Ant Design UI and a Swagger-docume
 ```bash
 docker run -d \
   --name catflap-panel \
-  -p 8080:8080 \
+  --network host \
   -v catflap-data:/app/data \
   -e Admin__UserName=admin \
   -e Admin__Password=YourSecurePassword \
   kingsznhone/catflap-relay:latest
 ```
+
+> **Why `--network host`?** CatFlap Relay forwards traffic between arbitrary ports on the host. Bridge networking adds a NAT layer that breaks relay functionality — host network mode gives the container direct access to all host interfaces and ports.
+> The panel web UI is accessible at `http://<host-ip>:8080`.
 
 > If `Admin__Password` is not set, a random 16-character password will be generated and printed to the container logs.
 > Check it with: `docker logs catflap-panel`
@@ -107,11 +110,7 @@ services:
     image: kingsznhone/catflap-relay:latest
     container_name: catflap-panel
     restart: unless-stopped
-    ports:
-      - "8080:8080"
-      # Expose relay ports as needed:
-      # - "25565:25565"
-      # - "25565:25565/udp"
+    network_mode: host
     volumes:
       - catflap-data:/app/data
     environment:
