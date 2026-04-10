@@ -1,4 +1,4 @@
-name: Build and Publish CatHole
+name: Build and Publish CatFlap
 
 on:
   workflow_dispatch:
@@ -94,7 +94,7 @@ jobs:
       - name: Publish (framework-dependent)
         if: matrix.mode == 'framework'
         run: >
-          dotnet publish CatHole.CLI/CatHole.CLI.csproj
+          dotnet publish CatFlap.CLI/CatFlap.CLI.csproj
           -c Release
           -r ${{ matrix.rid }}
           --no-self-contained
@@ -105,7 +105,7 @@ jobs:
       - name: Publish (AOT)
         if: matrix.mode == 'aot'
         run: >
-          dotnet publish CatHole.CLI/CatHole.CLI.csproj
+          dotnet publish CatFlap.CLI/CatFlap.CLI.csproj
           -c Release
           -r ${{ matrix.rid }}
           -p:PublishAot=true
@@ -115,7 +115,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
-          name: cathole-cli-${{ needs.get-version.outputs.version }}-${{ matrix.rid }}${{ matrix.suffix }}
+          name: catFlap-cli-${{ needs.get-version.outputs.version }}-${{ matrix.rid }}${{ matrix.suffix }}
           path: publish/out/
           if-no-files-found: error
 
@@ -142,7 +142,7 @@ jobs:
 
       - name: Publish (framework-dependent)
         run: >
-          dotnet publish CatHole.Panel/CatHole.Panel.csproj
+          dotnet publish CatFlap.Panel/CatFlap.Panel.csproj
           -c Release
           -r ${{ matrix.rid }}
           -p:PublishSingleFile=true
@@ -153,7 +153,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
-          name: cathole-panel-${{ needs.get-version.outputs.version }}-${{ matrix.rid }}
+          name: catFlap-panel-${{ needs.get-version.outputs.version }}-${{ matrix.rid }}
           path: publish/panel-out/
           if-no-files-found: error
 
