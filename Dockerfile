@@ -2,6 +2,7 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
+COPY Directory.Build.props .
 COPY CatFlapRelay/CatFlapRelay.csproj CatFlapRelay/
 COPY CatFlapRelay.Panel/CatFlapRelay.Panel.csproj CatFlapRelay.Panel/
 
