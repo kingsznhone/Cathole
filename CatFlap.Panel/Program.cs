@@ -15,6 +15,8 @@ using CatFlap.Panel.Models;
 using CatFlap.Panel.OpenApiTransformer;
 using CatFlap.Panel.Services;
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Hosting.Server;
+using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.Sqlite;
@@ -29,6 +31,8 @@ namespace CatFlap.Panel
     {
         public static async Task Main(string[] args)
         {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+
             ConfigureBootstrapLogger();
 
             try
@@ -49,6 +53,7 @@ namespace CatFlap.Panel
                 var app = builder.Build();
 
                 ConfigureMiddleware(app);
+                ConfigureStartupLogging(app);
                 await InitializeDatabaseAsync(app);
 
                 app.Run();
@@ -364,6 +369,36 @@ namespace CatFlap.Panel
 
             app.MapControllers();
             app.MapAdditionalIdentityEndpoints().ExcludeFromDescription();
+        }
+
+        /// <summary>
+        /// Registers an ApplicationStarted callback that logs the listening addresses and key endpoints.
+        /// </summary>
+        private static void ConfigureStartupLogging(WebApplication app)
+        {
+            app.Lifetime.ApplicationStarted.Register(() =>
+            {
+                var logger = app.Services.GetRequiredService<ILogger<Program>>();
+                var server = app.Services.GetRequiredService<IServer>();
+                var addresses = server.Features.Get<IServerAddressesFeature>()?.Addresses;
+                var baseAddress = addresses?.FirstOrDefault() ?? "http://localhost";
+
+                var serviceName = "CatFlap Panel";
+                var version = typeof(Program).Assembly.GetName().Version?.ToString(3) ?? "1.0.0";
+                var debugEnabled = app.Environment.IsDevelopment();
+
+                logger.LogInformation("==============================================");
+                logger.LogInformation("🚀 {ServiceName} v{Version} | {Environment}", serviceName, version, app.Environment.EnvironmentName);
+                logger.LogInformation("==============================================");
+
+                if (addresses?.Any() == true)
+                    logger.LogInformation("🌐 Listening: {Address}", string.Join(", ", addresses));
+
+                logger.LogInformation("📍 Endpoints:");
+                logger.LogInformation("   Swagger: {Address}/swagger", baseAddress);
+                logger.LogInformation("   Health:  {Address}/health", baseAddress);
+                logger.LogInformation("==============================================");
+            });
         }
 
         /// <summary>
