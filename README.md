@@ -306,3 +306,11 @@ curl -X POST -H "Authorization: Bearer $TOKEN" http://localhost:8080/api/v1/rela
 ## License
 
 [MIT](LICENSE) © KingsZNHONE
+
+# Bug report 
+
+Open an issue.
+
+# Contribution
+
+PR is welcome.
